@@ -1,0 +1,99 @@
+﻿<div class="login-page">
+
+  <div class="login-overlay"></div>
+
+    <div class="login-card">
+
+      <div class="login-logo">
+        <img src="/assets/logo.png" alt="Logo Crisântemos">
+      </div>
+
+      <div class="login-header">
+        <h1>Acesse sua conta</h1>
+        <p>Digite seu e-mail e senha para acessar a plataforma</p>
+      </div>
+
+      <form (ngSubmit)="fazerLogin()">
+
+        <div class="form-group">
+          <label for="usuario">E-mail</label>
+
+          <input
+            id="usuario"
+            type="email"
+            name="usuario"
+            [(ngModel)]="usuario"
+            placeholder="Digite seu e-mail"
+            autocomplete="username"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="senha">Senha</label>
+
+          <input
+            id="senha"
+            type="password"
+            name="senha"
+            [(ngModel)]="senha"
+            placeholder="Digite sua senha"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="btn-login"
+        >
+          {{ autenticando ? 'Entrando...' : 'Entrar' }}
+        </button>
+
+      </form>
+
+  
+      <button type="button" class="btn-recuperar" (click)="abrirRecuperacao()">
+        Precisa redefinir sua senha?
+      </button>
+
+      <div class="login-footer">
+        Ao continuar, você concorda com os Termos de Serviço
+        e Política de Privacidade.
+      </div>
+
+    </div>
+
+  @if (mostrarMensagem) {
+
+    <div class="modal-overlay">
+
+      <div class="modal-card">
+
+        <div class="modal-icon">
+          !
+        </div>
+
+        <h2>
+          {{ getTituloMensagem() }}
+        </h2>
+
+        <p>
+          {{ getTextoMensagem() }}
+        </p>
+
+        <button
+          type="button"
+          class="modal-button"
+          (click)="fecharMensagem()"
+        >
+          OK
+        </button>
+
+      </div>
+
+    </div>
+
+  }
+
+</div>

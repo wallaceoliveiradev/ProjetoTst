@@ -1,0 +1,147 @@
+<h2>Treinamentos</h2>
+<div class="content-wrapper">
+  <nav class="internal-nav">
+    <a routerLink="#" routerLinkActive="active">Cadastro de Funcionários</a>
+    <a routerLink="#" routerLinkActive="active">Participantes</a>
+    <a routerLink="#" routerLinkActive="active">Certificados</a>
+    <a routerLink="#" routerLinkActive="active">Reciclagens Obrigatórias</a>
+    <a routerLink="#" routerLinkActive="active">Controle de Validades</a>
+  </nav>
+
+  <nav class="training-sub-nav" aria-label="Navegação de treinamentos">
+    <button
+      type="button"
+      [class.active]="abaAtiva === 'cadastrados'"
+      (click)="mostrarTreinamentosCadastrados()"
+    >
+      Treinamentos cadastrados
+    </button>
+    <button
+      *ngIf="authService.isAdmin()"
+      type="button"
+      [class.active]="abaAtiva === 'formulario'"
+      (click)="abrirFormulario()"
+    >
+      Novo treinamento
+    </button>
+  </nav>
+
+  @if (mensagemErro) {
+  <p class="error-message" role="alert">{{ mensagemErro }}</p>
+  }
+  @if (mensagemSucesso) {
+  <p class="success-message" role="status">{{ mensagemSucesso }}</p>
+  }
+  @if (formularioAberto && abaAtiva === 'formulario') {
+  <div class="formulario-treinamento">
+    <div class="formulario-header">
+      <h3>{{ treinamentoEditando ? 'Editar Treinamento' : 'Novo Treinamento' }}</h3>
+    </div>
+
+    <form #formTreinamento="ngForm" (ngSubmit)="salvarTreinamento(formTreinamento)">
+      <div class="form-group">
+        <label for="nome">Nome do Treinamento</label>
+        <input type="text" id="nome" [(ngModel)]="novoTreinamento.nome" name="nome"
+          placeholder="Ex.: Direção Defensiva para Motoristas" required />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="norma">NR / Norma</label>
+          <input type="text" id="norma" [(ngModel)]="novoTreinamento.norma" name="norma" placeholder="Ex.: NR-06"
+            required />
+        </div>
+
+        <div class="form-group">
+          <label for="carga">Carga horária</label>
+          <input type="number" id="carga" [(ngModel)]="novoTreinamento.cargaHoraria" name="cargaHoraria"
+            min="1" placeholder="Ex.: 8" required />
+        </div>
+
+        <div class="form-group">
+          <label for="validade">Validade</label>
+          <select id="validade" [(ngModel)]="novoTreinamento.validade" name="validade">
+            <option [ngValue]="0" disabled>Selecione</option>
+            <option [ngValue]="6">6 meses</option>
+            <option [ngValue]="12">12 meses</option>
+            <option [ngValue]="24">24 meses</option>
+            <option [ngValue]="36">36 meses</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="participantes">Participantes</label>
+          <input type="number" id="participantes" [(ngModel)]="novoTreinamento.participantes" name="participantes"
+            min="0" placeholder="Ex.: 30" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="descricao">Descrição</label>
+        <textarea id="descricao" rows="4" [(ngModel)]="novoTreinamento.descricao" name="descricao"
+          placeholder="Descreva o objetivo e conteúdo do treinamento" required></textarea>
+      </div>
+
+      <div class="form-group">
+        <span class="form-label">Colaboradores inscritos</span>
+        @if (colaboradores().length === 0) {
+        <p>Nenhum colaborador ativo encontrado.</p>
+        }
+        <label class="colaborador-option" *ngFor="let colaborador of colaboradores()">
+          <input
+            type="checkbox"
+            [checked]="novoTreinamento.usuarioIds?.includes(colaborador.id) || false"
+            (change)="alternarColaborador(colaborador.id, $event)"
+          />
+          {{ colaborador.nome }} ({{ colaborador.email }})
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-cancelar" (click)="fecharFormulario()" [disabled]="salvando">Cancelar</button>
+        <button type="submit" class="btn-salvar" [disabled]="salvando">
+          {{ salvando ? 'Salvando...' : (treinamentoEditando ? 'Salvar alterações' : 'Salvar treinamento') }}
+        </button>
+      </div>
+    </form>
+  </div>
+  }
+
+  <table>
+    <thead>
+      <tr>
+        <th>Treinamento</th>
+        <th>NR / Norma</th>
+        <th>Descrição</th>
+        <th>Carga horária</th>
+        <th>Validade</th>
+        <th>Participantes</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (treinamento of treinamentos(); track treinamento.id) {
+      <tr>
+        <td>{{ treinamento.nome }}</td>
+        <td>{{ treinamento.norma }}</td>
+        <td>{{ treinamento.descricao }}</td>
+        <td>{{ treinamento.cargaHoraria }} horas</td>
+        <td>{{ treinamento.validade }} meses</td>
+        <td>{{ treinamento.participantes }}</td>
+        <td>{{ treinamento.status }}</td>
+
+        <td class="acoes">
+          <button class="btn-ver" *ngIf="authService.isAdmin()">Ver</button>
+          <button class="btn-editar" *ngIf="authService.isAdmin()" (click)="editarTreinamento(treinamento)">Editar</button>
+        </td>
+      </tr>
+      }
+      @if (treinamentos().length === 0 && !mensagemErro) {
+      <tr>
+        <td colspan="8">Nenhum treinamento cadastrado.</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</div>
