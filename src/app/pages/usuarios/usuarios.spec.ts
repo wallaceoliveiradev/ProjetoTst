@@ -1,17 +1,48 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
+import { RiscoApiService } from '../../services/risco-api.service';
+import { UsuarioApiService } from '../../services/usuario-api.service';
 
-import { Usuarios } from './usuarios';
+import { UsuariosComponent } from './usuarios';
 
 describe('Usuarios', () => {
-  let component: Usuarios;
-  let fixture: ComponentFixture<Usuarios>;
+  let component: UsuariosComponent;
+  let fixture: ComponentFixture<UsuariosComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Usuarios],
+      imports: [UsuariosComponent],
+      providers: [
+        {
+          provide: AuthService,
+          useValue: {
+            getUsuarioLogado: () => null,
+            isAdmin: () => false,
+            isColaborador: () => false,
+          },
+        },
+        {
+          provide: UsuarioApiService,
+          useValue: {
+            listar: () => of([]),
+            obterUsuarioAtual: () => of(null),
+            cadastrar: () => of(null),
+          },
+        },
+        {
+          provide: RiscoApiService,
+          useValue: {
+            listar: () => of([]),
+            listarAssociacoes: () => of([]),
+            listarMinhasAssociacoes: () => of([]),
+            substituirAssociacoes: () => of([]),
+          },
+        },
+      ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(Usuarios);
+    fixture = TestBed.createComponent(UsuariosComponent);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

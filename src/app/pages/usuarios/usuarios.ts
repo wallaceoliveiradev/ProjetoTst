@@ -1,17 +1,26 @@
 import { AuthService, Perfil } from '../../services/auth.service';
 import { UsuarioApi, UsuarioApiService } from '../../services/usuario-api.service';
-import { Component, OnInit } from '@angular/core';
+import {
+  NivelRiscoApi,
+  RiscoApi,
+  RiscoApiService,
+  RiscoUsuarioApi,
+  RiscoUsuarioRequestApi,
+} from '../../services/risco-api.service';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
 interface RiscoUsuario {
+  riscoId: number;
   setor: string;
   risco: string;
   nivel: 'Baixo' | 'Médio' | 'Alto';
   situacao: 'Ativo' | 'Inativo';
   validade: string;
   validadeValida: boolean;
+  validado: boolean;
 }
 
 interface Usuario {
@@ -52,10 +61,19 @@ export class UsuariosComponent implements OnInit {
   usuarioVisualizado: Usuario | null = null;
   usuarioSelecionado: Usuario | null = null;
   novoUsuario: CadastroUsuario = this.novoUsuarioVazio();
+  riscosDisponiveis: RiscoApi[] = [];
+  riscosCarregando = false;
+  salvandoRiscos = false;
+  riscosMensagem = '';
+  riscoSelecionadoId: number | null = null;
+  novaValidade = '';
+  novoRiscoValidado = false;
 
   constructor(
     public authService: AuthService,
     private usuarioApiService: UsuarioApiService,
+    private riscosApi: RiscoApiService,
+    private changeDetector: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -80,6 +98,7 @@ export class UsuariosComponent implements OnInit {
         riscos: [],
       }));
       this.buscarUsuario();
+      this.changeDetector.markForCheck();
     };
 
     if (this.authService.isAdmin()) {
@@ -87,6 +106,7 @@ export class UsuariosComponent implements OnInit {
         next: carregar,
         error: (erro: HttpErrorResponse) => {
           this.mensagem = `Não foi possível carregar usuários (HTTP ${erro.status}).`;
+          this.changeDetector.markForCheck();
         },
       });
       return;
@@ -96,6 +116,7 @@ export class UsuariosComponent implements OnInit {
       next: (usuario) => carregar([usuario]),
       error: (erro: HttpErrorResponse) => {
         this.mensagem = `Não foi possível carregar seu usuário (HTTP ${erro.status}).`;
+        this.changeDetector.markForCheck();
       },
     });
   }
@@ -151,7 +172,126 @@ export class UsuariosComponent implements OnInit {
       return;
     }
 
-    this.usuarioVisualizado = usuario;
+    this.usuarioVisualizado = { ...usuario, riscos: [] };
+    this.riscosDisponiveis = [];
+    this.riscosMensagem = '';
+    this.riscosCarregando = true;
+
+    const requisicao = this.authService.isAdmin()
+      ? this.riscosApi.listarAssociacoes(usuario.id)
+      : this.riscosApi.listarMinhasAssociacoes();
+    requisicao.subscribe({
+      next: (riscos) => {
+        if (this.usuarioVisualizado?.id === usuario.id) {
+          this.usuarioVisualizado.riscos = riscos.map((risco) => this.adaptarRiscoUsuario(risco));
+        }
+        this.riscosCarregando = false;
+        this.changeDetector.markForCheck();
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.riscosMensagem = erro.status === 0
+          ? 'Não foi possível conectar à API de riscos.'
+          : `Não foi possível carregar os riscos associados (HTTP ${erro.status}).`;
+        this.riscosCarregando = false;
+        this.changeDetector.markForCheck();
+      },
+    });
+
+    if (this.authService.isAdmin()) {
+      this.riscosApi.listar({ situacao: 'ATIVO' }).subscribe({
+        next: (riscos) => {
+          this.riscosDisponiveis = riscos;
+          this.changeDetector.markForCheck();
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.riscosMensagem = erro.status === 0
+            ? 'Não foi possível conectar à API para carregar riscos disponíveis.'
+            : `Não foi possível carregar riscos disponíveis (HTTP ${erro.status}).`;
+          this.changeDetector.markForCheck();
+        },
+      });
+    }
+  }
+
+  adicionarRiscoAoUsuario(): void {
+    if (!this.usuarioVisualizado || !this.authService.isAdmin()) {
+      return;
+    }
+    if (this.riscoSelecionadoId === null || !this.novaValidade) {
+      this.riscosMensagem = 'Selecione um risco e informe a validade.';
+      return;
+    }
+    if (this.usuarioVisualizado.riscos.some((risco) => risco.riscoId === this.riscoSelecionadoId)) {
+      this.riscosMensagem = 'Este risco já está associado a este usuário.';
+      return;
+    }
+
+    const risco = this.riscosDisponiveis.find((item) => item.id === this.riscoSelecionadoId);
+    if (!risco) {
+      this.riscosMensagem = 'O risco selecionado não está mais disponível.';
+      return;
+    }
+
+    this.usuarioVisualizado.riscos.push({
+      riscoId: risco.id,
+      setor: risco.setor,
+      risco: risco.risco,
+      nivel: this.nivelRiscoLegivel(risco.nivel),
+      situacao: 'Ativo',
+      validade: this.novaValidade,
+      validadeValida: this.novaValidade >= new Date().toISOString().slice(0, 10),
+      validado: this.novoRiscoValidado,
+    });
+    this.riscoSelecionadoId = null;
+    this.novaValidade = '';
+    this.novoRiscoValidado = false;
+    this.riscosMensagem = 'Risco adicionado. Salve as associações para confirmar.';
+    this.changeDetector.markForCheck();
+  }
+
+  removerRiscoDoUsuario(riscoId: number): void {
+    if (!this.usuarioVisualizado || !this.authService.isAdmin()) {
+      return;
+    }
+    this.usuarioVisualizado.riscos = this.usuarioVisualizado.riscos
+      .filter((risco) => risco.riscoId !== riscoId);
+    this.riscosMensagem = 'Associação removida da lista. Salve para confirmar.';
+    this.changeDetector.markForCheck();
+  }
+
+  salvarAssociacoesRisco(): void {
+    if (!this.usuarioVisualizado || !this.authService.isAdmin() || this.salvandoRiscos) {
+      return;
+    }
+
+    if (this.usuarioVisualizado.riscos.some((risco) => !risco.validade)) {
+      this.riscosMensagem = 'Informe a validade de todas as associações.';
+      return;
+    }
+
+    const associacoes: RiscoUsuarioRequestApi[] = this.usuarioVisualizado.riscos.map((risco) => ({
+      riscoId: risco.riscoId,
+      validade: risco.validade,
+      validado: risco.validado,
+    }));
+    this.salvandoRiscos = true;
+    this.riscosApi.substituirAssociacoes(this.usuarioVisualizado.id, associacoes).subscribe({
+      next: (riscos) => {
+        if (this.usuarioVisualizado) {
+          this.usuarioVisualizado.riscos = riscos.map((risco) => this.adaptarRiscoUsuario(risco));
+        }
+        this.riscosMensagem = 'Associações de riscos salvas com sucesso.';
+        this.salvandoRiscos = false;
+        this.changeDetector.markForCheck();
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.riscosMensagem = erro.status === 0
+          ? 'Não foi possível conectar à API para salvar as associações.'
+          : `Não foi possível salvar as associações (HTTP ${erro.status}).`;
+        this.salvandoRiscos = false;
+        this.changeDetector.markForCheck();
+      },
+    });
   }
 
   editarUsuario(usuario: Usuario): void {
@@ -301,5 +441,27 @@ export class UsuariosComponent implements OnInit {
 
   isColaborador(): boolean {
     return this.authService.isColaborador();
+  }
+
+  private adaptarRiscoUsuario(risco: RiscoUsuarioApi): RiscoUsuario {
+    return {
+      riscoId: risco.riscoId,
+      setor: risco.setor,
+      risco: risco.risco,
+      nivel: this.nivelRiscoLegivel(risco.nivel),
+      situacao: risco.situacao === 'ATIVO' ? 'Ativo' : 'Inativo',
+      validade: risco.validade,
+      validadeValida: risco.validadeValida,
+      validado: risco.validado,
+    };
+  }
+
+  private nivelRiscoLegivel(nivel: NivelRiscoApi): RiscoUsuario['nivel'] {
+    const niveis: Record<NivelRiscoApi, RiscoUsuario['nivel']> = {
+      ALTO: 'Alto',
+      MEDIO: 'Médio',
+      BAIXO: 'Baixo',
+    };
+    return niveis[nivel];
   }
 }

@@ -39,14 +39,38 @@ export class Login {
       },
       error: (erro: HttpErrorResponse) => {
         this.autenticando = false;
-        this.mostrarMensagemFlutuante(
-          erro.status === 0 ? 'API indisponível' : 'Falha no login',
-          erro.status === 0
-            ? 'Não foi possível conectar ao servidor de autenticação.'
-            : 'Confira seu e-mail e senha cadastrados no sistema.',
-        );
+        const mensagem = this.obterMensagemErro(erro);
+        this.mostrarMensagemFlutuante(mensagem.titulo, mensagem.texto);
       },
     });
+  }
+
+  private obterMensagemErro(erro: HttpErrorResponse): { titulo: string; texto: string } {
+    if (erro.status === 0) {
+      return {
+        titulo: 'API indisponível',
+        texto: 'Não foi possível conectar a http://localhost:8080. Confirme que o backend está iniciado e que a origem do frontend está liberada no CORS.',
+      };
+    }
+
+    if (erro.status === 400) {
+      return {
+        titulo: 'Dados inválidos',
+        texto: 'O backend exige um e-mail válido e uma senha preenchida. Confira os dados e tente novamente.',
+      };
+    }
+
+    if (erro.status === 401) {
+      return {
+        titulo: 'Credenciais recusadas',
+        texto: 'O backend não autenticou essa conta. Confirme se o e-mail e a senha pertencem ao mesmo banco usado pela API e se o usuário está ATIVO.',
+      };
+    }
+
+    return {
+      titulo: 'Erro no login',
+      texto: `O backend respondeu com HTTP ${erro.status}. Confira os logs da API para identificar a causa.`,
+    };
   }
 
   abrirRecuperacao(): void {

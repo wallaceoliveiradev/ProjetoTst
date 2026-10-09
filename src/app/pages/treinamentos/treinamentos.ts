@@ -120,6 +120,14 @@ export class Treinamentos implements OnInit {
   }
 
   private mensagemDaFalha(erro: HttpErrorResponse): string {
+    if (erro.status === 401) {
+      return 'Sua sessão expirou ou o token foi recusado pela API. Entre novamente e tente salvar. O token do backend expira após 15 minutos.';
+    }
+
+    if (erro.status === 403) {
+      return 'Sua conta não tem permissão para salvar treinamentos. Entre com um usuário administrador.';
+    }
+
     if (erro.status === 400) {
       return 'A API rejeitou os dados. Confira os campos obrigatórios e tente novamente.';
     }

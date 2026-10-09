@@ -1,17 +1,7 @@
 import { Routes } from '@angular/router';
-import { Perfil } from './pages/perfil/perfil';
 import { Layout } from './pages/layout/layout';
-import { Dashboard } from './pages/dashboard/dashboard';
-import { UsuariosComponent} from './pages/usuarios/usuarios';
-import { Treinamentos } from './pages/treinamentos/treinamentos';
-import { Epis } from './pages/epis/epis';
-import { Riscos } from './pages/riscos/riscos';
-import { Relatorios } from './pages/relatorios/relatorios';
 import { Login } from './pages/login/login';
 import { authGuard } from './guards/auth.guard';
-import { Topbar } from './pages/topbar/topbar';
-import { Checklist } from './pages/checklist/checklist';
-import { Footer } from './pages/footer/footer';
 import { adminGuard } from './guards/admin-guard';
 
 export const routes: Routes = [
@@ -23,28 +13,59 @@ export const routes: Routes = [
     component: Layout,
     canActivate: [authGuard],
     children: [
-
-      { path: '', component: Dashboard },
-
-  {
-
-  path: 'usuarios',
-  component: UsuariosComponent,
-  canActivate: [authGuard]
-},
- {
-      path: 'perfil',
-      component: Perfil,
-      canActivate: [authGuard]
-    },
-
-      { path: 'treinamentos', component: Treinamentos },
-      { path: 'epis', component: Epis },
-      { path: 'riscos', component: Riscos },
-      { path: 'relatorios', component: Relatorios },
-      { path: 'topbar', component: Topbar },
-      {path: 'checklist', component: Checklist },
-      {path: 'footer', component: Footer }
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/dashboard/dashboard').then((module) => module.Dashboard),
+      },
+      {
+        path: 'usuarios',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./pages/usuarios/usuarios').then((module) => module.UsuariosComponent),
+      },
+      {
+        path: 'perfil',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./pages/perfil/perfil').then((module) => module.Perfil),
+      },
+      {
+        path: 'treinamentos',
+        loadComponent: () =>
+          import('./pages/treinamentos/treinamentos').then((module) => module.Treinamentos),
+      },
+      {
+        path: 'epis',
+        loadComponent: () =>
+          import('./pages/epis/epis').then((module) => module.Epis),
+      },
+      {
+        path: 'riscos',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/riscos/riscos').then((module) => module.Riscos),
+      },
+      {
+        path: 'relatorios',
+        loadComponent: () =>
+          import('./pages/relatorios/relatorios').then((module) => module.Relatorios),
+      },
+      {
+        path: 'topbar',
+        loadComponent: () =>
+          import('./pages/topbar/topbar').then((module) => module.Topbar),
+      },
+      {
+        path: 'checklist',
+        loadComponent: () =>
+          import('./pages/checklist/checklist').then((module) => module.Checklist),
+      },
+      {
+        path: 'footer',
+        loadComponent: () =>
+          import('./pages/footer/footer').then((module) => module.Footer),
+      },
     ],
   },
 ];

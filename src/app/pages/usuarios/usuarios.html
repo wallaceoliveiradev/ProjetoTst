@@ -126,7 +126,32 @@
       <p><strong>Status do usuário:</strong> {{ usuarioVisualizado.ativo ? 'Ativo' : 'Inativo' }}</p>
     </div>
 
-    <table class="riscos-table">
+    <h4>Riscos associados</h4>
+    <p *ngIf="riscosCarregando" role="status">Carregando associações...</p>
+    <p *ngIf="riscosMensagem" class="mensagem-alerta" role="status">{{ riscosMensagem }}</p>
+
+    <div *ngIf="authService.isAdmin()" class="associar-risco">
+      <div class="form-group">
+        <label for="risco-usuario">Risco</label>
+        <select id="risco-usuario" name="riscoUsuario" [(ngModel)]="riscoSelecionadoId">
+          <option [ngValue]="null">Selecione um risco ativo</option>
+          <option *ngFor="let risco of riscosDisponiveis" [ngValue]="risco.id">
+            {{ risco.setor }} — {{ risco.risco }}
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="validade-risco">Validade</label>
+        <input id="validade-risco" name="validadeRisco" type="date" [(ngModel)]="novaValidade" />
+      </div>
+      <label class="checkbox-group">
+        <input type="checkbox" name="novoRiscoValidado" [(ngModel)]="novoRiscoValidado" />
+        Validado
+      </label>
+      <button type="button" (click)="adicionarRiscoAoUsuario()">Adicionar risco</button>
+    </div>
+
+    <table class="riscos-table" *ngIf="!riscosCarregando">
       <thead>
         <tr>
           <th>Setor</th>
@@ -135,6 +160,8 @@
           <th>Situação</th>
           <th>Validade</th>
           <th>Validado</th>
+          <th>Validade vigente</th>
+          <th *ngIf="authService.isAdmin()">Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -143,12 +170,34 @@
           <td>{{ risco.risco }}</td>
           <td>{{ risco.nivel }}</td>
           <td>{{ risco.situacao }}</td>
-          <td>{{ risco.validade }}</td>
+          <td>
+            <input *ngIf="authService.isAdmin()" type="date"
+              [name]="'validade-' + risco.riscoId" [(ngModel)]="risco.validade" />
+            <span *ngIf="!authService.isAdmin()">{{ risco.validade | date:'dd/MM/yyyy' }}</span>
+          </td>
+          <td>
+            <input *ngIf="authService.isAdmin()" type="checkbox"
+              [name]="'validado-' + risco.riscoId" [(ngModel)]="risco.validado" />
+            <span *ngIf="!authService.isAdmin()">{{ risco.validado ? 'Sim' : 'Não' }}</span>
+          </td>
           <td>{{ risco.validadeValida ? 'Sim' : 'Não' }}</td>
+          <td *ngIf="authService.isAdmin()">
+            <button type="button" class="cancel-button"
+              (click)="removerRiscoDoUsuario(risco.riscoId)">Remover</button>
+          </td>
+        </tr>
+        <tr *ngIf="usuarioVisualizado.riscos.length === 0">
+          <td [attr.colspan]="authService.isAdmin() ? 8 : 7">Nenhum risco associado a este usuário.</td>
         </tr>
       </tbody>
     </table>
 
+    <div *ngIf="authService.isAdmin()" class="edit-actions">
+      <button type="button" [disabled]="salvandoRiscos || riscosCarregando"
+        (click)="salvarAssociacoesRisco()">
+        {{ salvandoRiscos ? 'Salvando...' : 'Salvar associações' }}
+      </button>
+    </div>
     <button type="button" class="close-view" (click)="usuarioVisualizado = null">Fechar</button>
   </section>
 

@@ -103,6 +103,7 @@ button + button {
 }
 
 button:first-of-type {
+  margin-top: 10px;
   background: var(--charcoal);
   color: white;
 }
@@ -177,6 +178,63 @@ button:first-of-type {
   border: 1px solid #ddd;
   padding: 10px;
   text-align: left;
+}
+
+.associar-risco {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) minmax(170px, 1fr) auto auto;
+  gap: 14px;
+  align-items: end;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.associar-risco .form-group {
+  margin: 0;
+}
+
+.associar-risco select,
+.associar-risco input[type='date'] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.checkbox-group input,
+.riscos-table input[type='checkbox'] {
+  width: auto;
+}
+
+.riscos-table input[type='date'] {
+  max-width: 155px;
+}
+
+.riscos-table td .cancel-button {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .associar-risco {
+    grid-template-columns: 1fr;
+  }
+
+  .view-form {
+    overflow-x: auto;
+  }
+
+  .riscos-table {
+    min-width: 760px;
+  }
 }
 
 .close-view {

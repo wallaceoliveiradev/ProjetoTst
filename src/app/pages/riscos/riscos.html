@@ -4,11 +4,75 @@
       <h1>Gestão de Riscos</h1>
       <p>Gerencie e acompanhe os riscos identificados nos setores.</p>
     </div>
-    <button class="novo-risco" type="button">
+    <button class="novo-risco" type="button" (click)="novoRisco()">
       <i class="bi bi-plus-lg"></i>
       Novo Risco
     </button>
   </header>
+
+  <section *ngIf="mensagemErro" class="riscos-message error" role="alert">
+    {{ mensagemErro }}
+  </section>
+  <section *ngIf="mensagemSucesso" class="riscos-message success" role="status">
+    {{ mensagemSucesso }}
+  </section>
+
+  <section *ngIf="formularioAberto" class="risco-form-card">
+    <h2>{{ editandoId === null ? 'Cadastrar risco' : 'Editar risco' }}</h2>
+    <form #formRisco="ngForm" (ngSubmit)="salvarRisco()">
+      <div class="risco-form-grid">
+        <div class="filter-group">
+          <label for="risco-setor">Setor</label>
+          <input id="risco-setor" name="setor" [(ngModel)]="formulario.setor"
+            maxlength="120" required />
+        </div>
+        <div class="filter-group">
+          <label for="risco-descricao">Risco</label>
+          <input id="risco-descricao" name="risco" [(ngModel)]="formulario.risco"
+            maxlength="180" required />
+        </div>
+        <div class="filter-group">
+          <label for="risco-nivel">Nível</label>
+          <select id="risco-nivel" name="nivel" [(ngModel)]="formulario.nivel" required>
+            <option value="Alto">Alto</option>
+            <option value="Médio">Médio</option>
+            <option value="Baixo">Baixo</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="risco-situacao">Situação</label>
+          <select id="risco-situacao" name="situacao" [(ngModel)]="formulario.situacao" required>
+            <option value="Ativo">Ativo</option>
+            <option value="Inativo">Inativo</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="risco-icone">Ícone Bootstrap (opcional)</label>
+          <input id="risco-icone" name="icone" [(ngModel)]="formulario.icone"
+            maxlength="64" placeholder="bi-exclamation-triangle" />
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button type="submit" class="btn-filter" [disabled]="formRisco.invalid || salvando">
+          {{ salvando ? 'Salvando...' : 'Salvar risco' }}
+        </button>
+        <button type="button" class="btn-clear" (click)="cancelarEdicao()">Cancelar</button>
+      </div>
+    </form>
+  </section>
+
+  <section *ngIf="riscoVisualizado as risco" class="risco-form-card risco-details">
+    <div>
+      <h2>{{ risco.risco }}</h2>
+      <p><strong>Setor:</strong> {{ risco.setor }}</p>
+      <p><strong>Nível:</strong> {{ risco.nivel }}</p>
+      <p><strong>Situação:</strong> {{ risco.situacao }}</p>
+    </div>
+    <div class="filter-actions">
+      <button type="button" class="btn-filter" (click)="editarRisco(risco)">Editar</button>
+      <button type="button" class="btn-clear" (click)="riscoVisualizado = null">Fechar</button>
+    </div>
+  </section>
 
   <section class="riscos-summary">
     <article>
@@ -98,7 +162,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let risco of riscosFiltrados">
+        <tr *ngFor="let risco of riscos">
           <td>
             <div class="setor-cell">
               <span class="setor-icon"><i class="bi {{ risco.icone }}"></i></span>
@@ -109,10 +173,23 @@
           <td><span class="tag nivel-{{ risco.nivel.toLowerCase() }}">{{ risco.nivel }}</span></td>
           <td><span class="status {{ risco.situacao.toLowerCase() }}">{{ risco.situacao }}</span></td>
           <td class="actions-cell">
-            <button class="action-btn view"><i class="bi bi-eye"></i></button>
-            <button class="action-btn edit"><i class="bi bi-pencil"></i></button>
-            <button class="action-btn more"><i class="bi bi-three-dots"></i></button>
+            <button type="button" class="action-btn view" [attr.aria-label]="'Visualizar ' + risco.risco"
+              title="Visualizar" (click)="verRisco(risco)"><i class="bi bi-eye"></i></button>
+            <button type="button" class="action-btn edit" [attr.aria-label]="'Editar ' + risco.risco"
+              title="Editar" (click)="editarRisco(risco)"><i class="bi bi-pencil"></i></button>
+            <button type="button" class="action-btn more" [attr.aria-label]="(risco.situacao === 'Ativo' ? 'Desativar ' : 'Ativar ') + risco.risco"
+              [title]="risco.situacao === 'Ativo' ? 'Desativar' : 'Ativar'"
+              (click)="alternarSituacao(risco)">
+              <i class="bi" [class.bi-toggle-on]="risco.situacao === 'Ativo'"
+                [class.bi-toggle-off]="risco.situacao === 'Inativo'"></i>
+            </button>
           </td>
+        </tr>
+        <tr *ngIf="!carregando && riscos.length === 0">
+          <td colspan="5" class="empty-row">Nenhum risco corresponde aos filtros.</td>
+        </tr>
+        <tr *ngIf="carregando">
+          <td colspan="5" class="empty-row">Carregando riscos...</td>
         </tr>
       </tbody>
     </table>

@@ -25,22 +25,24 @@ export class AuthService {
 
   loginApi(email: string, senha: string): Observable<LoginApiResponse> {
     return this.http.post<LoginApiResponse>(this.apiUrl, { email, senha }).pipe(
-      tap((resposta) => {
-        if (typeof window === 'undefined') {
-          return;
-        }
-
-        localStorage.setItem('accessToken', resposta.token);
-        localStorage.setItem(
-          'tokenExpiresAt',
-          String(Date.now() + resposta.expiresIn * 1000),
-        );
-        localStorage.setItem('perfil', resposta.usuario.perfil.toLowerCase());
-        localStorage.setItem('nomeUsuario', resposta.usuario.nome);
-        localStorage.setItem('usuarioLogado', JSON.stringify(resposta.usuario));
-        localStorage.removeItem('isLoggedIn');
-      }),
+      tap((resposta) => this.gravarSessao(resposta)),
     );
+  }
+
+  private gravarSessao(resposta: LoginApiResponse): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    localStorage.setItem('accessToken', resposta.token);
+    localStorage.setItem(
+      'tokenExpiresAt',
+      String(Date.now() + resposta.expiresIn * 1000),
+    );
+    localStorage.setItem('perfil', resposta.usuario.perfil.toLowerCase());
+    localStorage.setItem('nomeUsuario', resposta.usuario.nome);
+    localStorage.setItem('usuarioLogado', JSON.stringify(resposta.usuario));
+    localStorage.removeItem('isLoggedIn');
   }
 
   logout(): void {

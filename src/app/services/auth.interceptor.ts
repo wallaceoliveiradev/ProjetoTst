@@ -5,6 +5,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     return next(request);
   }
 
+  if (request.url.includes('/api/auth/login')) {
+    return next(request);
+  }
+
   const token = localStorage.getItem('accessToken');
   if (!token) {
     return next(request);
