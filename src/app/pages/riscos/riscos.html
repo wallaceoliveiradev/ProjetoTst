@@ -1,13 +1,16 @@
 <div class="riscos-page">
-  <header class="riscos-header">
-    <div>
-      <h1>Gestão de Riscos</h1>
-      <p>Gerencie e acompanhe os riscos identificados nos setores.</p>
+  <header class="app-page-heading">
+    <div class="app-page-heading__content">
+      <span class="app-page-heading__eyebrow"><i class="bi bi-shield-check"></i> SAÚDE E SEGURANÇA DO TRABALHO</span>
+      <h1 class="app-page-heading__title">Gestão de Riscos</h1>
+      <p class="app-page-heading__description">Gerencie e acompanhe os riscos identificados nos setores.</p>
     </div>
-    <button class="novo-risco" type="button" (click)="novoRisco()">
-      <i class="bi bi-plus-lg"></i>
-      Novo Risco
-    </button>
+    <div class="app-page-heading__actions">
+      <button class="novo-risco" type="button" (click)="novoRisco()">
+        <i class="bi bi-plus-lg"></i>
+        Novo Risco
+      </button>
+    </div>
   </header>
 
   <section *ngIf="mensagemErro" class="riscos-message error" role="alert">

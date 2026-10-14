@@ -1,139 +1,161 @@
-<div class="checklist-page">
-  <div>
+<main class="checklist-page">
+  @if (tela === 'painel') {
+    <header class="page-heading overview-heading">
+      <div class="page-title">
+        <span class="eyebrow"><i class="bi bi-shield-check"></i> SAÚDE E SEGURANÇA DO TRABALHO</span>
         <h1>Checklist de Segurança</h1>
         <p>Registre e acompanhe as inspeções de segurança do trabalho.</p>
       </div>
-  <div class="checklist-header-card">
-    <div class="checklist-header-top">
-      <div class="checklist-icon-box">
-        <i class="bi bi-clipboard2-check-fill"></i>
+      <div class="header-actions">
+        <button type="button" class="button button-primary" (click)="abrirSelecao()">
+          <i class="bi bi-plus-lg"></i> Novo Checklist
+        </button>
       </div>
+    </header>
 
-      <button type="button" class="print-button" (click)="imprimirChecklist()">
-        <i class="bi bi-printer"></i>
-        Imprimir
-      </button>
-    </div>
-
-    <div class="checklist-info-grid">
-      <div class="info-field">
-        <label>Data da Inspeção</label>
-        <input type="date" class="form-control" />
+    @if (erroCarregamento) {
+      <div class="feedback-message feedback-message-error" role="alert">
+        <i class="bi bi-exclamation-circle"></i>{{ erroCarregamento }}
       </div>
-      <div class="info-field">
-        <label>Local</label>
-        <input type="text" class="form-control" placeholder="Setor Administrativo" />
+    }
+    @if (feedbackSalvamento) {
+      <div class="feedback-message" [class.feedback-message-error]="erroSalvamento" [attr.role]="erroSalvamento ? 'alert' : 'status'">
+        <i class="bi" [class.bi-exclamation-circle]="erroSalvamento" [class.bi-check-circle]="!erroSalvamento"></i>{{ feedbackSalvamento }}
       </div>
-      <div class="info-field">
-        <label>Responsável</label>
-        <input type="text" class="form-control" placeholder="Carlos Silva" />
+    }
+
+    <section class="stats-grid" aria-label="Resumo das inspeções recentes">
+      <article class="stat-card"><div class="stat-icon stat-icon-neutral"><i class="bi bi-clipboard2-check"></i></div><div class="stat-content"><span class="stat-number">{{ resumoPainel.total }}</span><span class="stat-label">Itens verificados</span></div></article>
+      <article class="stat-card"><div class="stat-icon stat-icon-success"><i class="bi bi-check-circle-fill"></i></div><div class="stat-content"><span class="stat-number">{{ resumoPainel.conformes }}</span><span class="stat-label">Conformes</span></div></article>
+      <article class="stat-card"><div class="stat-icon stat-icon-danger"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="stat-content"><span class="stat-number">{{ resumoPainel.naoConformes }}</span><span class="stat-label">Não conformes</span></div></article>
+      <article class="stat-card"><div class="stat-icon stat-icon-warning"><i class="bi bi-clock-history"></i></div><div class="stat-content"><span class="stat-number">{{ resumoPainel.pendentes }}</span><span class="stat-label">Pendentes</span></div></article>
+      <article class="stat-card stat-card-progress"><div class="stat-content"><span class="stat-number">{{ resumoPainel.conformidade }}%</span><span class="stat-label">Índice de conformidade</span></div><div class="conformity-ring" [style.--percentual]="resumoPainel.conformidade + '%'" role="img" [attr.aria-label]="resumoPainel.conformidade + '% de conformidade'"><span>{{ resumoPainel.conformidade }}%</span></div></article>
+    </section>
+
+    <section class="surface-card history-card">
+      <header class="history-heading">
+        <div><h2>Últimas Inspeções</h2><p>Acompanhe os registros e retome uma inspeção para consultar seus detalhes.</p></div>
+      </header>
+      <div class="table-responsive">
+        <table class="history-table">
+          <thead><tr><th>Data</th><th>Tipo de inspeção</th><th>Local / Veículo</th><th>Responsável</th><th>Conformidade</th><th>Ações</th></tr></thead>
+          <tbody>
+            @for (registro of ultimasInspecoes; track registro.id) {
+              <tr>
+                <td>{{ formatarData(registro.data) }}</td>
+                <td><span class="history-type"><i class="bi" [class]="iconeTipo(registro.tipoId)"></i>{{ registro.tipo }}</span><small class="record-origin">{{ registro.origem === 'api' ? 'Salva' : 'Exemplo' }}</small></td>
+                <td>{{ registro.localVeiculo }}</td>
+                <td>{{ registro.responsavel }}</td>
+                <td><div class="history-progress"><strong>{{ registro.conformidade }}%</strong><span class="progress-track"><span [style.width.%]="registro.conformidade" [class.progress-warning]="registro.conformidade < 70"></span></span></div></td>
+                <td><button type="button" class="icon-button" (click)="abrirInspecaoRecente(registro)" [attr.aria-label]="'Abrir ' + registro.tipo" title="Visualizar inspeção"><i class="bi bi-eye"></i></button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
-      <div class="info-field">
-        <label>Setor</label>
-        <input type="text" class="form-control" placeholder="Administrativo" />
+    </section>
+  }
+
+  @if (tela === 'selecao') {
+    <section class="selector-screen">
+      <header class="selector-heading">
+        <div><span class="eyebrow"><i class="bi bi-clipboard2-check"></i> CHECKLIST DE SEGURANÇA</span><h1>Novo Checklist</h1><p>Selecione o tipo de inspeção que deseja realizar.</p></div>
+        <button type="button" class="icon-button" aria-label="Voltar ao painel" title="Voltar ao painel" (click)="voltarAoPainel()"><i class="bi bi-x-lg"></i></button>
+      </header>
+      <div class="inspection-type-grid">
+        @for (tipo of tiposInspecao; track tipo.id) {
+          <button type="button" class="inspection-type-card" (click)="iniciarInspecao(tipo.id)">
+            <span class="inspection-type-icon"><i class="bi" [class]="tipo.icone"></i></span>
+            <strong>{{ tipo.titulo }}</strong>
+            <span>{{ tipo.descricao }}</span>
+            <span class="type-card-action">Iniciar inspeção <i class="bi bi-arrow-right"></i></span>
+          </button>
+        }
       </div>
-    </div>
-  </div>
+      <footer class="selector-footer"><span>Escolha um modelo para carregar os itens de verificação correspondentes.</span><button type="button" class="button button-secondary" (click)="voltarAoPainel()">Cancelar</button></footer>
+    </section>
+  }
 
-  <div class="observacoes-card">
-    <label class="observacoes-label">Observações Gerais</label>
-    <textarea rows="5" class="form-control" placeholder="Digite observações sobre a inspeção..."></textarea>
-  </div>
+  @if (tela === 'inspecao') {
+    <header class="page-heading detail-heading">
+      <div class="page-title">
+        <div class="breadcrumb"><button type="button" (click)="voltarAoPainel()">Checklist de Segurança</button><i class="bi bi-chevron-right"></i><span>{{ tipoSelecionado?.titulo }}</span></div>
+        <h1>{{ tipoSelecionado?.titulo }}</h1>
+        <p>{{ tipoSelecionado?.descricao }}</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="button button-secondary" (click)="imprimirChecklist()"><i class="bi bi-printer"></i> Imprimir</button>
+        <button type="button" class="button button-primary" (click)="salvarChecklist()"><i class="bi bi-check2-circle"></i> Salvar Checklist</button>
+      </div>
+    </header>
 
-  <div class="checklist-table-card">
-    <div class="checklist-table-header">
-      <h2>Itens de Verificação</h2>
-    </div>
-    <div class="table-responsive">
-      <table class="checklist-table">
-        <thead>
-          <tr>
-            <th>Item de Verificação</th>
-            <th class="text-center">Sim</th>
-            <th class="text-center">Não</th>
-            <th>Observações</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>
-              <div class="item-label">
-                <span class="item-icon"><i class="bi bi-person-bounding-box"></i></span>
-                Uso correto de EPI
-              </div>
-            </td>
-            <td class="text-center"><input type="radio" name="epi" /></td>
-            <td class="text-center"><input type="radio" name="epi" /></td>
-            <td><input class="form-control" placeholder="Observações..." /></td>
-          </tr>
-          <tr>
-            <td>
-              <div class="item-label">
-                <span class="item-icon"><i class="bi bi-fire"></i></span>
-                Extintor disponível e válido
-              </div>
-            </td>
-            <td class="text-center"><input type="radio" name="ext1" /></td>
-            <td class="text-center"><input type="radio" name="ext1" /></td>
-            <td><input class="form-control" placeholder="Observações..." /></td>
-          </tr>
-          <tr>
-            <td>
-              <div class="item-label">
-                <span class="item-icon"><i class="bi bi-door-open"></i></span>
-                Saídas de emergência sinalizadas
-              </div>
-            </td>
-            <td class="text-center"><input type="radio" name="saida1" /></td>
-            <td class="text-center"><input type="radio" name="saida1" /></td>
-            <td><input class="form-control" placeholder="Observações..." /></td>
-          </tr>
-          <tr>
-            <td>
-              <div class="item-label">
-                <span class="item-icon"><i class="bi bi-broom"></i></span>
-                Piso limpo e sem obstáculos
-              </div>
-            </td>
-            <td class="text-center"><input type="radio" name="piso1" /></td>
-            <td class="text-center"><input type="radio" name="piso1" /></td>
-            <td><input class="form-control" placeholder="Observações..." /></td>
-          </tr>
-          <tr>
-            <td>
-              <div class="item-label">
-                <span class="item-icon"><i class="bi bi-gear-fill"></i></span>
-                Máquinas com proteção
-              </div>
-            </td>
-            <td class="text-center"><input type="radio" name="maq1" /></td>
-            <td class="text-center"><input type="radio" name="maq1" /></td>
-            <td><input class="form-control" placeholder="Observações..." /></td>
-          </tr>
-          <tr>
-            <td>
-              <div class="item-label">
-                <span class="item-icon"><i class="bi bi-lightbulb-fill"></i></span>
-                Iluminação adequada
-              </div>
-            </td>
-            <td class="text-center"><input type="radio" name="ilu1" /></td>
-            <td class="text-center"><input type="radio" name="ilu1" /></td>
-            <td><input class="form-control" placeholder="Observações..." /></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+    @if (feedbackSalvamento) { <div class="feedback-message" [class.feedback-message-error]="erroSalvamento" [attr.role]="erroSalvamento ? 'alert' : 'status'"><i class="bi" [class.bi-exclamation-circle]="erroSalvamento" [class.bi-check-circle]="!erroSalvamento"></i>{{ feedbackSalvamento }}</div> }
 
-  <div class="checklist-actions">
-    <button class="btn btn-cancel">
-      <i class="bi bi-x-circle"></i>
-      Cancelar
-    </button>
-    <button class="btn btn-save">
-      <i class="bi bi-check-circle"></i>
-      Salvar Checklist
-    </button>
-  </div>
-</div>
+    <section class="inspection-grid">
+      <article class="surface-card inspection-details">
+        <div class="section-heading"><div class="section-heading-icon"><i class="bi bi-clipboard2-data"></i></div><div><h2>Dados da Inspeção</h2><p>Identificação e informações do checklist.</p></div></div>
+        <div class="inspection-fields">
+          <div class="field-group"><label for="inspection-date">Data da inspeção</label><input id="inspection-date" name="inspectionDate" type="date" class="field-control" required [(ngModel)]="inspecao.data" /></div>
+          @if (tipoAtual === 'onibus') {
+            <div class="field-group"><label for="bus-number">Nº do ônibus</label><input id="bus-number" name="busNumber" type="text" class="field-control" placeholder="Ex.: 3021" [(ngModel)]="inspecao.numeroOnibus" /></div>
+            <div class="field-group"><label for="bus-plate">Placa</label><input id="bus-plate" name="busPlate" type="text" class="field-control" placeholder="Ex.: RIO-3A21" [(ngModel)]="inspecao.placa" /></div>
+            <div class="field-group"><label for="inspection-type">Tipo de inspeção</label><select id="inspection-type" name="inspectionType" class="field-control" [(ngModel)]="inspecao.tipo"><option>Pré-operacional</option><option>Periódica</option><option>Pós-manutenção</option><option>Extraordinária</option></select></div>
+          }
+          @if (tipoAtual !== 'onibus') {
+            <div class="field-group"><label for="inspection-subtype">Tipo de inspeção</label><select id="inspection-subtype" name="inspectionSubtype" class="field-control" [(ngModel)]="inspecao.tipo"><option>Rotina</option><option>Programada</option><option>Extraordinária</option><option>Pós-correção</option></select></div>
+          }
+          <div class="field-group"><label for="inspection-location">Local</label><input id="inspection-location" name="inspectionLocation" type="text" class="field-control" placeholder="Local da inspeção" [(ngModel)]="inspecao.local" /></div>
+          <div class="field-group"><label for="inspection-sector">Setor</label><input id="inspection-sector" name="inspectionSector" type="text" class="field-control" placeholder="Setor responsável" [(ngModel)]="inspecao.setor" /></div>
+          <div class="field-group" [class.field-group-full]="tipoAtual !== 'onibus'"><label for="inspection-responsible">Responsável</label><input id="inspection-responsible" name="inspectionResponsible" type="text" class="field-control" placeholder="Nome do responsável" required maxlength="120" [(ngModel)]="inspecao.responsavel" /></div>
+        </div>
+      </article>
+
+      <aside class="inspection-summary">
+        <div class="summary-header"><div><span class="summary-eyebrow">ACOMPANHAMENTO</span><h2>Resumo da Inspeção</h2></div><i class="bi bi-activity"></i></div>
+        <div class="summary-main"><div class="summary-ring" [style.--percentual]="percentualConformidade + '%'"><div class="summary-ring-inner"><strong>{{ percentualConformidade }}%</strong><span>Conformidade</span></div></div><div class="summary-counts"><div class="summary-count"><span class="count-indicator count-neutral"></span><div><strong>{{ itensVerificados }}</strong><span>Itens verificados</span></div></div><div class="summary-count"><span class="count-indicator count-success"></span><div><strong>{{ itensConformes }}</strong><span>Conformes</span></div></div><div class="summary-count"><span class="count-indicator count-danger"></span><div><strong>{{ itensNaoConformes.length }}</strong><span>Não conformes</span></div></div><div class="summary-count"><span class="count-indicator count-warning"></span><div><strong>{{ itensPendentes }}</strong><span>Pendentes</span></div></div></div></div>
+        <div class="summary-footer"><i class="bi bi-info-circle"></i>Os indicadores são atualizados conforme você preenche o checklist.</div>
+      </aside>
+    </section>
+
+    <section class="verification-panel">
+      <header class="verification-header"><div><span class="section-kicker">INSPEÇÃO OPERACIONAL</span><h2>Itens de Verificação</h2><p>Selecione uma situação para cada item inspecionado.</p></div><span class="item-total">{{ totalItens }} itens</span></header>
+      <div class="verification-legend"><span><i class="legend-dot legend-success"></i> Conforme</span><span><i class="legend-dot legend-danger"></i> Não conforme</span><span><i class="legend-dot legend-warning"></i> Pendente</span></div>
+      @for (categoria of categorias; track categoria.id) {
+        <section class="category-section"><button type="button" class="category-heading" [attr.aria-expanded]="categoria.aberta" (click)="alternarCategoria(categoria.id)"><span class="category-title"><i class="bi" [class]="categoria.icone"></i>{{ categoria.titulo }}</span><span class="category-heading-end"><span class="category-count">{{ categoria.itens.length }} itens</span><i class="bi" [class.bi-chevron-down]="!categoria.aberta" [class.bi-chevron-up]="categoria.aberta"></i></span></button>
+          @if (categoria.aberta) {
+            <div class="table-responsive"><table class="verification-table"><thead><tr><th class="verification-item-column">Item de verificação</th><th class="status-column">Conforme</th><th class="status-column">Não conforme</th><th class="status-column">Pendente</th><th class="observation-column">Observações</th></tr></thead><tbody>
+              @for (item of categoria.itens; track item.id) {
+                <tr><td><div class="verification-item"><span class="verification-item-icon"><i class="bi" [class]="item.icone"></i></span><span>{{ item.descricao }}</span></div></td>
+                  <td class="status-cell"><label class="status-choice status-choice-success" [class.status-active]="item.status === 'conforme'"><input class="status-choice-input" type="radio" [name]="'status-' + item.id" value="conforme" [ngModel]="item.status" (ngModelChange)="marcarItem(item, 'conforme')" [attr.aria-label]="'Marcar ' + item.descricao + ' como conforme'" /><i class="bi bi-check-lg" aria-hidden="true"></i></label></td>
+                  <td class="status-cell"><label class="status-choice status-choice-danger" [class.status-active]="item.status === 'naoConforme'"><input class="status-choice-input" type="radio" [name]="'status-' + item.id" value="naoConforme" [ngModel]="item.status" (ngModelChange)="marcarItem(item, 'naoConforme')" [attr.aria-label]="'Marcar ' + item.descricao + ' como não conforme'" /><i class="bi bi-x-lg" aria-hidden="true"></i></label></td>
+                  <td class="status-cell"><label class="status-choice status-choice-warning" [class.status-active]="item.status === 'pendente'"><input class="status-choice-input" type="radio" [name]="'status-' + item.id" value="pendente" [ngModel]="item.status" (ngModelChange)="marcarItem(item, 'pendente')" [attr.aria-label]="'Marcar ' + item.descricao + ' como pendente'" /><i class="bi bi-clock" aria-hidden="true"></i></label></td>
+                  <td><input type="text" class="observation-input" [name]="'observation-' + item.id" [attr.aria-label]="'Observações de ' + item.descricao" placeholder="Observações..." [(ngModel)]="item.observacao" /></td>
+                </tr>
+              }
+            </tbody></table></div>
+          }
+        </section>
+      }
+    </section>
+
+    <section class="surface-card nonconformity-card">
+      <header class="section-heading nonconformity-heading"><div><h2>Não Conformidades Encontradas</h2><p>Detalhe os problemas identificados e acompanhe sua correção.</p></div><span class="issue-counter">{{ itensNaoConformes.length }}</span></header>
+      @if (itensNaoConformes.length > 0) {
+        <div class="table-responsive"><table class="issues-table"><thead><tr><th>Item</th><th>Descrição do problema</th><th>Prioridade</th><th>Responsável</th><th>Prazo</th><th>Ações</th></tr></thead><tbody>
+          @for (item of itensNaoConformes; track item.id) {
+            <tr><td class="issue-item">{{ item.descricao }}</td><td><input type="text" class="field-control" [name]="'issue-description-' + item.id" placeholder="Descreva o problema..." [(ngModel)]="item.observacao" /></td><td><select class="field-control priority-select" [name]="'issue-priority-' + item.id" [(ngModel)]="item.prioridade"><option>Alta</option><option>Média</option><option>Baixa</option></select></td><td><input type="text" class="field-control" [name]="'issue-owner-' + item.id" placeholder="Responsável" [(ngModel)]="item.responsavelCorrecao" /></td><td><input type="date" class="field-control" [name]="'issue-deadline-' + item.id" [(ngModel)]="item.prazo" /></td><td><button type="button" class="icon-button issue-action" title="Marcar como corrigido" [attr.aria-label]="'Marcar ' + item.descricao + ' como corrigido'" (click)="marcarItem(item, 'conforme')"><i class="bi bi-check2"></i></button></td></tr>
+          }
+        </tbody></table></div>
+      } @else { <div class="empty-issues"><i class="bi bi-check-circle"></i><strong>Nenhuma não conformidade registrada</strong><span>Os itens marcados como não conformes aparecerão aqui.</span></div> }
+    </section>
+
+    <section class="observations-evidence-grid">
+      <article class="surface-card general-observations"><div class="section-heading"><div class="section-heading-icon"><i class="bi bi-chat-left-text"></i></div><div><h2>Observações Gerais</h2><p>Registre informações complementares da inspeção.</p></div></div><textarea id="general-observations" name="generalObservations" class="field-control general-textarea" placeholder="Descreva as condições encontradas, orientações e ações recomendadas..." [(ngModel)]="observacoesGerais"></textarea></article>
+      <article class="surface-card evidence-card"><div class="section-heading"><div class="section-heading-icon"><i class="bi bi-camera"></i></div><div><h2>Evidências (Fotos)</h2><p>Adicione imagens para documentar a inspeção.</p></div></div><div class="evidence-grid">
+        @for (evidencia of evidencias; track evidencia.url) { <div class="evidence-preview"><img [src]="evidencia.url" [alt]="evidencia.nome" /><button type="button" class="remove-evidence" (click)="removerEvidencia(evidencia.url)" [attr.aria-label]="'Remover ' + evidencia.nome"><i class="bi bi-x-lg"></i></button></div> }
+        <label class="evidence-upload"><i class="bi bi-plus-lg"></i><span>Adicionar foto</span><input type="file" accept="image/*" multiple (change)="adicionarEvidencias($event)" /></label></div><p class="evidence-note">As fotos permanecem temporariamente nesta tela; somente os dados da inspeção e as respostas são enviados à API.</p></article>
+    </section>
+
+    <footer class="checklist-actions"><button type="button" class="button button-secondary" (click)="voltarAoPainel()"><i class="bi bi-arrow-left"></i> Voltar ao painel</button><button type="button" class="button button-secondary" (click)="cancelarChecklist()" [disabled]="salvandoChecklist"><i class="bi bi-arrow-counterclockwise"></i> Limpar checklist</button><button type="button" class="button button-primary" (click)="salvarChecklist()" [disabled]="salvandoChecklist"><i class="bi" [class.bi-check-circle]="!salvandoChecklist" [class.bi-arrow-repeat]="salvandoChecklist"></i> {{ salvandoChecklist ? 'Salvando...' : (inspecaoEditandoId === null ? 'Salvar Checklist' : 'Atualizar Checklist') }}</button></footer>
+  }
+</main>

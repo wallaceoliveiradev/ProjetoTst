@@ -5,22 +5,7 @@
 }
 
 .report-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.report-header h2 {
-  margin: 0;
-  font-size: 32px;
-  color: #111827;
-}
-
-.report-header p {
-  margin: 8px 0 0;
-  color: #6b7280;
-  max-width: 600px;
+  margin-bottom: 0;
 }
 
 .date-button {
