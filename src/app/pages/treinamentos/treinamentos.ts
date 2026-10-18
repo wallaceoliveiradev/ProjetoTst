@@ -270,7 +270,7 @@ export class Treinamentos implements OnDestroy, OnInit {
     this.conclusao = {
       treinamentoId: registro.treinamentoId,
       usuarioId: registro.usuarioId,
-      dataConclusao: new Date().toISOString().slice(0, 10),
+      dataConclusao: this.dataLocal(),
       cargaHoraria: this.treinamentos().find((item) => item.id === registro.treinamentoId)?.cargaHoraria
         ?? registro.cargaHoraria,
       instrutor: '',
@@ -501,11 +501,27 @@ export class Treinamentos implements OnDestroy, OnInit {
     return {
       treinamentoId: 0,
       usuarioId: 0,
-      dataConclusao: new Date().toISOString().slice(0, 10),
+      dataConclusao: this.dataLocal(),
       cargaHoraria: 0,
       instrutor: '',
       conteudoProgramatico: '',
     };
+  }
+
+  private dataLocal(): string {
+    const partes = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const ano = partes.find((parte) => parte.type === 'year')?.value;
+    const mes = partes.find((parte) => parte.type === 'month')?.value;
+    const dia = partes.find((parte) => parte.type === 'day')?.value;
+    if (!ano || !mes || !dia) {
+      throw new Error('Não foi possível determinar a data atual de São Paulo.');
+    }
+    return `${ano}-${mes}-${dia}`;
   }
 
   private obterDadosTreinamento(): TreinamentoRequest {

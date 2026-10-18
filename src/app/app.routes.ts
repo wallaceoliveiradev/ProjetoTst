@@ -48,6 +48,7 @@ export const routes: Routes = [
       },
       {
         path: 'relatorios',
+        canActivate: [adminGuard],
         loadComponent: () =>
           import('./pages/relatorios/relatorios').then((module) => module.Relatorios),
       },
