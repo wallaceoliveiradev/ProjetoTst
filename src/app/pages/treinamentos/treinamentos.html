@@ -3,152 +3,504 @@
     <div class="app-page-heading__content">
       <span class="app-page-heading__eyebrow"><i class="bi bi-shield-check"></i> SAÚDE E SEGURANÇA DO TRABALHO</span>
       <h1 class="app-page-heading__title">Treinamentos</h1>
-      <p class="app-page-heading__description">Gerencie treinamentos, participantes e capacitações obrigatórias.</p>
+      <p class="app-page-heading__description">
+        Gerencie capacitações, certificados, reciclagens e validade por colaborador.
+      </p>
     </div>
   </header>
 
-  <nav class="internal-nav">
-    <a routerLink="#" routerLinkActive="active">Cadastro de Funcionários</a>
-    <a routerLink="#" routerLinkActive="active">Participantes</a>
-    <a routerLink="#" routerLinkActive="active">Certificados</a>
-    <a routerLink="#" routerLinkActive="active">Reciclagens Obrigatórias</a>
-    <a routerLink="#" routerLinkActive="active">Controle de Validades</a>
-  </nav>
-
   <nav class="training-sub-nav" aria-label="Navegação de treinamentos">
-    <button
-      type="button"
-      [class.active]="abaAtiva === 'cadastrados'"
-      (click)="mostrarTreinamentosCadastrados()"
-    >
+    <button type="button" [class.active]="abaAtiva === 'cadastrados'" (click)="selecionarAba('cadastrados')">
       Treinamentos cadastrados
     </button>
     <button
       *ngIf="authService.isAdmin()"
       type="button"
-      [class.active]="abaAtiva === 'formulario'"
+      [class.active]="abaAtiva === 'novo'"
       (click)="abrirFormulario()"
     >
       Novo treinamento
     </button>
+    <button type="button" [class.active]="abaAtiva === 'certificados'" (click)="selecionarAba('certificados')">
+      Certificados
+    </button>
+    <button type="button" [class.active]="abaAtiva === 'reciclagens'" (click)="selecionarAba('reciclagens')">
+      Reciclagens obrigatórias
+      @if (registrosEmReciclagem.length > 0) {
+        <span class="nav-count">{{ registrosEmReciclagem.length }}</span>
+      }
+    </button>
+    <button type="button" [class.active]="abaAtiva === 'validades'" (click)="selecionarAba('validades')">
+      Controle de validades
+    </button>
   </nav>
 
   @if (mensagemErro) {
-  <p class="error-message" role="alert">{{ mensagemErro }}</p>
+    <p class="error-message" role="alert">{{ mensagemErro }}</p>
   }
   @if (mensagemSucesso) {
-  <p class="success-message" role="status">{{ mensagemSucesso }}</p>
+    <p class="success-message" role="status">{{ mensagemSucesso }}</p>
   }
-  @if (formularioAberto && abaAtiva === 'formulario') {
-  <div class="formulario-treinamento">
-    <div class="formulario-header">
-      <h3>{{ treinamentoEditando ? 'Editar Treinamento' : 'Novo Treinamento' }}</h3>
+
+  @if (abaAtiva === 'novo') {
+    <section class="formulario-treinamento">
+      <div class="formulario-header">
+        <div>
+          <h2>{{ treinamentoEditando ? 'Editar treinamento' : 'Novo treinamento' }}</h2>
+          <p>Cadastre o curso e relacione os colaboradores que devem realizá-lo.</p>
+        </div>
+      </div>
+
+      <form #formTreinamento="ngForm" (ngSubmit)="salvarTreinamento(formTreinamento)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nome">Nome do treinamento</label>
+            <input
+              type="text"
+              id="nome"
+              [(ngModel)]="novoTreinamento.nome"
+              name="nome"
+              placeholder="Ex.: Trabalho em Altura"
+              maxlength="80"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="norma">NR / Norma</label>
+            <input
+              type="text"
+              id="norma"
+              [(ngModel)]="novoTreinamento.norma"
+              (ngModelChange)="sugerirValidadeNorma()"
+              name="norma"
+              placeholder="Ex.: NR-35"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="carga">Carga horária padrão (horas)</label>
+            <input
+              type="number"
+              id="carga"
+              [(ngModel)]="novoTreinamento.cargaHoraria"
+              name="cargaHoraria"
+              min="1"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="validade">Validade padrão</label>
+            <select id="validade" [(ngModel)]="novoTreinamento.validade" name="validade" required>
+              <option [ngValue]="0" disabled>Selecione a validade</option>
+              <option [ngValue]="6">6 meses</option>
+              <option [ngValue]="12">12 meses</option>
+              <option [ngValue]="24">24 meses</option>
+              <option [ngValue]="36">36 meses</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="participantes">Participantes previstos</label>
+            <input
+              type="number"
+              id="participantes"
+              [(ngModel)]="novoTreinamento.participantes"
+              name="participantes"
+              min="0"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="descricao">Descrição / conteúdo de referência</label>
+          <textarea
+            id="descricao"
+            rows="3"
+            [(ngModel)]="novoTreinamento.descricao"
+            name="descricao"
+            maxlength="255"
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <span class="form-label">Colaboradores relacionados</span>
+          @if (colaboradoresAtivos.length === 0) {
+            <p class="empty-message">Nenhum colaborador ativo encontrado.</p>
+          }
+          <div class="collaborator-list">
+            @for (colaborador of colaboradoresAtivos; track colaborador.id) {
+              <label class="colaborador-option">
+                <input
+                  type="checkbox"
+                  [checked]="novoTreinamento.usuarioIds?.includes(colaborador.id) || false"
+                  (change)="alternarColaborador(colaborador.id, $event)"
+                />
+                <span>{{ colaborador.nome }} <small>{{ colaborador.email }}</small></span>
+              </label>
+            }
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancelar" (click)="fecharFormulario()" [disabled]="salvando">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-salvar" [disabled]="salvando">
+            {{ salvando ? 'Salvando...' : (treinamentoEditando ? 'Salvar alterações' : 'Salvar treinamento') }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  @if (abaAtiva === 'cadastrados') {
+    <section class="section-heading">
+      <div>
+        <h2>Treinamentos cadastrados</h2>
+        <p>Cursos disponíveis e colaboradores relacionados.</p>
+      </div>
+    </section>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Treinamento</th>
+            <th>Norma</th>
+            <th>Carga horária</th>
+            <th>Validade padrão</th>
+            <th>Colaboradores relacionados</th>
+            <th>Status</th>
+            @if (authService.isAdmin()) { <th>Ações</th> }
+          </tr>
+        </thead>
+        <tbody>
+          @for (treinamento of treinamentos(); track treinamento.id) {
+            <tr>
+              <td><strong>{{ treinamento.nome }}</strong><small class="cell-secondary">{{ treinamento.descricao }}</small></td>
+              <td>{{ treinamento.norma }}</td>
+              <td>{{ treinamento.cargaHoraria }} h</td>
+              <td>{{ treinamento.validade }} meses</td>
+              <td>
+                @if ((treinamento.usuarioIds ?? []).length === 0) {
+                  <span class="muted">Nenhum relacionado</span>
+                } @else {
+                  <div class="related-users">
+                    @for (usuarioId of (treinamento.usuarioIds ?? []); track usuarioId) {
+                      <span>{{ colaboradorDoId(usuarioId) }}</span>
+                    }
+                  </div>
+                }
+              </td>
+              <td>{{ treinamento.status }}</td>
+              @if (authService.isAdmin()) {
+                <td><button type="button" class="btn-editar" (click)="editarTreinamento(treinamento)">Editar</button></td>
+              }
+            </tr>
+          }
+          @if (treinamentos().length === 0) {
+            <tr><td [attr.colspan]="authService.isAdmin() ? 7 : 6" class="empty-message">Nenhum treinamento cadastrado.</td></tr>
+          }
+        </tbody>
+      </table>
     </div>
-
-    <form #formTreinamento="ngForm" (ngSubmit)="salvarTreinamento(formTreinamento)">
-      <div class="form-group">
-        <label for="nome">Nome do Treinamento</label>
-        <input type="text" id="nome" [(ngModel)]="novoTreinamento.nome" name="nome"
-          placeholder="Ex.: Direção Defensiva para Motoristas" required />
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="norma">NR / Norma</label>
-          <input type="text" id="norma" [(ngModel)]="novoTreinamento.norma" name="norma" placeholder="Ex.: NR-06"
-            required />
-        </div>
-
-        <div class="form-group">
-          <label for="carga">Carga horária</label>
-          <input type="number" id="carga" [(ngModel)]="novoTreinamento.cargaHoraria" name="cargaHoraria"
-            min="1" placeholder="Ex.: 8" required />
-        </div>
-
-        <div class="form-group">
-          <label for="validade">Validade</label>
-          <select id="validade" [(ngModel)]="novoTreinamento.validade" name="validade">
-            <option [ngValue]="0" disabled>Selecione</option>
-            <option [ngValue]="6">6 meses</option>
-            <option [ngValue]="12">12 meses</option>
-            <option [ngValue]="24">24 meses</option>
-            <option [ngValue]="36">36 meses</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="participantes">Participantes</label>
-          <input type="number" id="participantes" [(ngModel)]="novoTreinamento.participantes" name="participantes"
-            min="0" placeholder="Ex.: 30" required />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="descricao">Descrição</label>
-        <textarea id="descricao" rows="4" [(ngModel)]="novoTreinamento.descricao" name="descricao"
-          placeholder="Descreva o objetivo e conteúdo do treinamento" required></textarea>
-      </div>
-
-      <div class="form-group">
-        <span class="form-label">Colaboradores inscritos</span>
-        @if (colaboradores().length === 0) {
-        <p>Nenhum colaborador ativo encontrado.</p>
-        }
-        <label class="colaborador-option" *ngFor="let colaborador of colaboradores()">
-          <input
-            type="checkbox"
-            [checked]="novoTreinamento.usuarioIds?.includes(colaborador.id) || false"
-            (change)="alternarColaborador(colaborador.id, $event)"
-          />
-          {{ colaborador.nome }} ({{ colaborador.email }})
-        </label>
-      </div>
-
-      <div class="form-actions">
-        <button type="button" class="btn-cancelar" (click)="fecharFormulario()" [disabled]="salvando">Cancelar</button>
-        <button type="submit" class="btn-salvar" [disabled]="salvando">
-          {{ salvando ? 'Salvando...' : (treinamentoEditando ? 'Salvar alterações' : 'Salvar treinamento') }}
-        </button>
-      </div>
-    </form>
-  </div>
   }
 
-  <table>
-    <thead>
-      <tr>
-        <th>Treinamento</th>
-        <th>NR / Norma</th>
-        <th>Descrição</th>
-        <th>Carga horária</th>
-        <th>Validade</th>
-        <th>Participantes</th>
-        <th>Status</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (treinamento of treinamentos(); track treinamento.id) {
-      <tr>
-        <td>{{ treinamento.nome }}</td>
-        <td>{{ treinamento.norma }}</td>
-        <td>{{ treinamento.descricao }}</td>
-        <td>{{ treinamento.cargaHoraria }} horas</td>
-        <td>{{ treinamento.validade }} meses</td>
-        <td>{{ treinamento.participantes }}</td>
-        <td>{{ treinamento.status }}</td>
+  @if (abaAtiva === 'certificados') {
+    @if (authService.isAdmin()) {
+      <section class="formulario-treinamento">
+        <div class="formulario-header">
+          <div>
+            <h2>Registrar conclusão / reciclagem</h2>
+            <p>O certificado é obrigatório. A validade e o vencimento são calculados pela regra do treinamento e cargo.</p>
+          </div>
+        </div>
+        <form #formConclusao="ngForm" (ngSubmit)="registrarConclusao(formConclusao)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cursoConclusao">Treinamento</label>
+              <select
+                id="cursoConclusao"
+                [(ngModel)]="conclusao.treinamentoId"
+                (ngModelChange)="selecionarTreinamentoDaConclusao($event)"
+                name="treinamentoId"
+                required
+              >
+                <option [ngValue]="0" disabled>Selecione o treinamento</option>
+                @for (treinamento of treinamentos(); track treinamento.id) {
+                  <option [ngValue]="treinamento.id">{{ treinamento.norma }} — {{ treinamento.nome }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="colaboradorConclusao">Colaborador</label>
+              <select id="colaboradorConclusao" [(ngModel)]="conclusao.usuarioId" name="usuarioId" required>
+                <option [ngValue]="0" disabled>Selecione o colaborador</option>
+                @for (colaborador of colaboradoresAtivos; track colaborador.id) {
+                  <option [ngValue]="colaborador.id">{{ colaborador.nome }} — {{ colaborador.cargo || 'Cargo não informado' }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="dataConclusao">Data de conclusão</label>
+              <input id="dataConclusao" type="date" [(ngModel)]="conclusao.dataConclusao" name="dataConclusao" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="cargaConclusao">Carga horária realizada (horas)</label>
+              <input id="cargaConclusao" type="number" min="1" [(ngModel)]="conclusao.cargaHoraria" name="cargaHoraria" required />
+            </div>
+            <div class="form-group">
+              <label for="instrutor">Instrutor</label>
+              <input id="instrutor" type="text" maxlength="120" [(ngModel)]="conclusao.instrutor" name="instrutor" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="conteudoProgramatico">Conteúdo programático</label>
+            <textarea
+              id="conteudoProgramatico"
+              rows="3"
+              maxlength="4000"
+              [(ngModel)]="conclusao.conteudoProgramatico"
+              name="conteudoProgramatico"
+              required
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="certificado">Certificado (PDF ou imagem, até 10 MB)</label>
+            <input
+              id="certificado"
+              type="file"
+              accept=".pdf,image/png,image/jpeg,image/gif,image/bmp,image/webp"
+              (change)="selecionarCertificado($event)"
+              required
+            />
+            @if (arquivoCertificado) { <small>Arquivo selecionado: {{ arquivoCertificado.name }}</small> }
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-salvar" [disabled]="salvando">
+              {{ salvando ? 'Registrando...' : 'Registrar certificado' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    }
 
-        <td class="acoes">
-          <button class="btn-ver" *ngIf="authService.isAdmin()">Ver</button>
-          <button class="btn-editar" *ngIf="authService.isAdmin()" (click)="editarTreinamento(treinamento)">Editar</button>
-        </td>
-      </tr>
+    <section class="section-heading">
+      <div>
+        <h2>Histórico de certificados</h2>
+        <p>Os ciclos anteriores são preservados quando uma reciclagem é registrada.</p>
+      </div>
+    </section>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Treinamento</th>
+            <th>Colaborador</th>
+            <th>Conclusão</th>
+            <th>Vencimento</th>
+            <th>Instrutor</th>
+            <th>Status</th>
+            <th>Certificado</th>
+            @if (authService.isAdmin()) { <th>Ações preventivas</th> }
+          </tr>
+        </thead>
+        <tbody>
+          @for (registro of historico(); track registro.id) {
+            <tr>
+              <td><strong>{{ registro.norma }} — {{ registro.treinamentoNome }}</strong></td>
+              <td>{{ registro.colaboradorNome }}</td>
+              <td>{{ formatarData(registro.dataConclusao) }}</td>
+              <td>{{ formatarData(registro.dataVencimento) }}</td>
+              <td>{{ registro.instrutor }}</td>
+              <td><span class="status-badge" [ngClass]="'status-' + registro.status.toLowerCase()">{{ statusLabel(registro.status) }}</span></td>
+              <td><button type="button" class="btn-link" (click)="abrirCertificado(registro)">{{ registro.certificadoNome }}</button></td>
+              @if (authService.isAdmin()) {
+                <td>
+                  @if (registro.status !== 'SUBSTITUIDO' && registro.status !== 'INVALIDADO') {
+                    @if (cicloParaInvalidarId !== registro.id) {
+                      <button type="button" class="btn-danger" (click)="iniciarInvalidacao(registro.id)">Forçar reciclagem</button>
+                    } @else {
+                      <form #confirmarCertificado="ngForm" (ngSubmit)="forcarReciclagem(confirmarCertificado)">
+                        <label [for]="'motivoCertificado' + registro.id">Motivo</label>
+                        <input [id]="'motivoCertificado' + registro.id" name="motivoCertificado" [(ngModel)]="motivoInvalidacao" maxlength="500" required />
+                        <button type="submit" class="btn-danger" [disabled]="salvando">Invalidar ciclo</button>
+                        <button type="button" class="btn-cancelar" (click)="cancelarInvalidacao()">Cancelar</button>
+                      </form>
+                    }
+                  }
+                </td>
+              }
+            </tr>
+          }
+          @if (historico().length === 0) {
+            <tr><td [attr.colspan]="authService.isAdmin() ? 8 : 7" class="empty-message">Nenhum certificado registrado.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (abaAtiva === 'reciclagens') {
+    <section class="section-heading">
+      <div>
+        <h2>Reciclagens obrigatórias</h2>
+        <p>Alertas são atualizados automaticamente; ciclos invalidados também exigem novo certificado.</p>
+      </div>
+    </section>
+    @if (registrosEmReciclagem.length === 0) {
+      <div class="empty-state">Nenhum certificado vencido, em alerta ou invalidado.</div>
+    }
+    <div class="renewal-list">
+      @for (registro of registrosEmReciclagem; track registro.id) {
+        <article class="renewal-card" [class.renewal-expired]="registro.status === 'VENCIDO' || registro.status === 'INVALIDADO'">
+          <div class="renewal-card__content">
+            <span class="status-badge" [ngClass]="'status-' + registro.status.toLowerCase()">{{ statusLabel(registro.status) }}</span>
+            <h3>{{ registro.norma }} — {{ registro.treinamentoNome }}</h3>
+            <p><strong>Colaborador:</strong> {{ registro.colaboradorNome }} · <strong>Cargo:</strong> {{ registro.cargo || 'Não informado' }}</p>
+            @if (registro.status === 'INVALIDADO') {
+              <p>Este certificado foi invalidado em {{ formatarData(registro.dataInvalidacao) }}. Motivo: {{ registro.motivoInvalidacao }}.</p>
+            } @else {
+              <p><strong>Vencimento:</strong> {{ formatarData(registro.dataVencimento) }} · alerta com {{ registro.diasAntecedenciaAlerta }} dias de antecedência.</p>
+            }
+          </div>
+          @if (authService.isAdmin()) {
+            <div class="renewal-actions">
+              <button type="button" class="btn-salvar" (click)="iniciarRenovacao(registro)">
+                {{ registro.status === 'INVALIDADO' ? 'Registrar novo certificado' : 'Registrar renovação' }}
+              </button>
+              @if (registro.status !== 'INVALIDADO') {
+                @if (cicloParaInvalidarId !== registro.id) {
+                  <button type="button" class="btn-danger" (click)="iniciarInvalidacao(registro.id)">Forçar reciclagem extraordinária</button>
+                } @else {
+                  <form #confirmarInvalidacao="ngForm" (ngSubmit)="forcarReciclagem(confirmarInvalidacao)">
+                    <label for="motivoInvalidacao">Motivo da invalidação</label>
+                    <input id="motivoInvalidacao" name="motivoInvalidacao" [(ngModel)]="motivoInvalidacao" maxlength="500" required />
+                    <button type="submit" class="btn-danger" [disabled]="salvando">Invalidar e exigir novo certificado</button>
+                    <button type="button" class="btn-cancelar" (click)="cancelarInvalidacao()">Cancelar</button>
+                  </form>
+                }
+              }
+            </div>
+          }
+        </article>
       }
-      @if (treinamentos().length === 0 && !mensagemErro) {
-      <tr>
-        <td colspan="8">Nenhum treinamento cadastrado.</td>
-      </tr>
-      }
-    </tbody>
-  </table>
+    </div>
+  }
+
+  @if (abaAtiva === 'validades') {
+    <section class="section-heading">
+      <div>
+        <h2>Controle de validades</h2>
+        <p>Defina regras gerais ou específicas por cargo. A regra é copiada para cada novo ciclo do certificado.</p>
+      </div>
+    </section>
+    @if (authService.isAdmin()) {
+      <section class="formulario-treinamento rule-form">
+        <div class="formulario-header">
+          <div>
+            <h3>{{ parametroEditandoId ? 'Editar regra de validade' : 'Cadastrar regra de validade' }}</h3>
+            <p>Deixe o cargo vazio para definir a regra padrão. Para NR-33, o sistema aplica 12 meses a trabalhadores/vigias e 24 meses a supervisores, salvo regra configurada.</p>
+          </div>
+        </div>
+        @if (treinamentos().length === 0) {
+          <p class="empty-message">Cadastre um treinamento antes de configurar sua validade.</p>
+        } @else {
+          <form #formParametro="ngForm" (ngSubmit)="salvarParametro(formParametro)">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="treinamentoRegra">Treinamento</label>
+                <select id="treinamentoRegra" [(ngModel)]="parametroForm.treinamentoId" name="treinamentoId" required>
+                  <option [ngValue]="0" disabled>Selecione</option>
+                  @for (treinamento of treinamentos(); track treinamento.id) {
+                    <option [ngValue]="treinamento.id">{{ treinamento.norma }} — {{ treinamento.nome }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="cargoRegra">Cargo (opcional)</label>
+                <input id="cargoRegra" [(ngModel)]="parametroForm.cargo" name="cargo" maxlength="100" placeholder="Ex.: Supervisor de espaço confinado" />
+              </div>
+              <div class="form-group">
+                <label for="validadeRegra">Validade (meses)</label>
+                <input id="validadeRegra" type="number" min="1" max="120" [(ngModel)]="parametroForm.validadeMeses" name="validadeMeses" required />
+              </div>
+              <div class="form-group">
+                <label for="antecedenciaRegra">Alerta antes do vencimento (dias)</label>
+                <input id="antecedenciaRegra" type="number" min="0" max="365" [(ngModel)]="parametroForm.diasAntecedenciaAlerta" name="diasAntecedenciaAlerta" required />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-cancelar" (click)="novaRegraPorCargo()">Nova regra por cargo</button>
+              <button type="submit" class="btn-salvar" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar regra' }}</button>
+            </div>
+          </form>
+        }
+      </section>
+
+      <section class="default-rules">
+        <h3>Validade padrão dos treinamentos</h3>
+        @for (treinamento of treinamentos(); track treinamento.id) {
+          <article class="default-rule-row">
+            <div><strong>{{ treinamento.norma }} — {{ treinamento.nome }}</strong><small>Regra geral atual: {{ treinamento.validade }} meses · alerta padrão: 60 dias</small></div>
+            <button type="button" class="btn-editar" (click)="abrirRegraGeral(treinamento)">Configurar regra geral</button>
+          </article>
+        }
+      </section>
+
+      <section class="default-rules">
+        <h3>Regras configuradas</h3>
+        @for (parametro of parametros(); track parametro.id) {
+          <article class="default-rule-row">
+            <div>
+              <strong>{{ parametro.norma }} — {{ parametro.treinamentoNome }}</strong>
+              <small>{{ parametro.cargo || 'Todos os cargos' }} · {{ parametro.validadeMeses }} meses · alerta {{ parametro.diasAntecedenciaAlerta }} dias antes</small>
+            </div>
+            <div class="rule-actions">
+              <button type="button" class="btn-editar" [disabled]="salvando" (click)="editarParametro(parametro)">Editar</button>
+              <button type="button" class="btn-danger" [disabled]="salvando" (click)="excluirParametro(parametro)">Excluir</button>
+            </div>
+          </article>
+        }
+        @if (parametros().length === 0) {
+          <p class="empty-message">Nenhuma regra adicional cadastrada. São aplicadas as validades padrão do treinamento e da NR-33.</p>
+        }
+      </section>
+    }
+
+    <section class="section-heading">
+      <div>
+        <h2>Certificados próximos do vencimento</h2>
+        <p>O status muda automaticamente de acordo com a data atual, sem apagar o histórico.</p>
+      </div>
+    </section>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Treinamento</th><th>Colaborador</th><th>Data de conclusão</th><th>Data de vencimento</th><th>Validade aplicada</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          @for (registro of historico(); track registro.id) {
+            <tr>
+              <td>{{ registro.norma }} — {{ registro.treinamentoNome }}</td>
+              <td>{{ registro.colaboradorNome }}</td>
+              <td>{{ formatarData(registro.dataConclusao) }}</td>
+              <td>{{ formatarData(registro.dataVencimento) }}</td>
+              <td>{{ registro.validadeAplicadaMeses }} meses</td>
+              <td><span class="status-badge" [ngClass]="'status-' + registro.status.toLowerCase()">{{ statusLabel(registro.status) }}</span></td>
+            </tr>
+          }
+          @if (historico().length === 0) {
+            <tr><td colspan="6" class="empty-message">Nenhum ciclo de validade registrado.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
 </div>

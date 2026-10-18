@@ -49,11 +49,6 @@
             <option value="Inativo">Inativo</option>
           </select>
         </div>
-        <div class="filter-group">
-          <label for="risco-icone">Ícone Bootstrap (opcional)</label>
-          <input id="risco-icone" name="icone" [(ngModel)]="formulario.icone"
-            maxlength="64" placeholder="bi-exclamation-triangle" />
-        </div>
       </div>
       <div class="filter-actions">
         <button type="submit" class="btn-filter" [disabled]="formRisco.invalid || salvando">

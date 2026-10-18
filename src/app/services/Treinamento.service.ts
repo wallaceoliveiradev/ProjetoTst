@@ -1,7 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map } from 'rxjs';
-import { StatusTreinamento, Treinamento } from '../pages/treinamentos/treinamento.model';
+import {
+  HistoricoTreinamento,
+  ParametroTreinamento,
+  ParametroTreinamentoRequest,
+  RegistroConclusaoTreinamento,
+  StatusTreinamento,
+  Treinamento,
+} from '../pages/treinamentos/treinamento.model';
 
 export type TreinamentoRequest = Omit<Treinamento, 'id'>;
 
@@ -62,6 +69,58 @@ export class TreinamentoService {
         ...treinamento,
         status: statusDaApi[treinamento.status],
       })),
+    );
+  }
+
+  listarHistorico() {
+    return this.http.get<HistoricoTreinamento[]>(`${this.url}/historico`);
+  }
+
+  registrarConclusao(dados: RegistroConclusaoTreinamento, certificado: File) {
+    const formulario = new FormData();
+    formulario.append(
+      'dados',
+      new Blob([JSON.stringify(dados)], { type: 'application/json' }),
+    );
+    formulario.append('certificado', certificado, certificado.name);
+    return this.http.post<HistoricoTreinamento>(`${this.url}/historico`, formulario);
+  }
+
+  invalidarCiclo(id: number, motivo: string) {
+    return this.http.post<HistoricoTreinamento>(`${this.url}/historico/${id}/invalidar`, {
+      motivo,
+    });
+  }
+
+  baixarCertificado(id: number) {
+    return this.http.get(`${this.url}/historico/${id}/certificado`, {
+      responseType: 'blob',
+    });
+  }
+
+  listarParametros() {
+    return this.http.get<ParametroTreinamento[]>(`${this.url}/parametros`);
+  }
+
+  salvarParametro(
+    treinamentoId: number,
+    dados: ParametroTreinamentoRequest,
+    parametroId?: number,
+  ) {
+    return parametroId === undefined
+      ? this.http.post<ParametroTreinamento>(
+          `${this.url}/${treinamentoId}/parametros`,
+          dados,
+        )
+      : this.http.put<ParametroTreinamento>(
+          `${this.url}/${treinamentoId}/parametros/${parametroId}`,
+          dados,
+        );
+  }
+
+  excluirParametro(treinamentoId: number, parametroId: number) {
+    return this.http.delete<void>(
+      `${this.url}/${treinamentoId}/parametros/${parametroId}`,
     );
   }
 

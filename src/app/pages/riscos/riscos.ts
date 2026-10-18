@@ -27,7 +27,6 @@ interface FormularioRisco {
   risco: string;
   nivel: NivelRiscoUi;
   situacao: SituacaoRiscoUi;
-  icone: string;
 }
 
 const nivelParaApi: Record<NivelRiscoUi, NivelRiscoApi> = {
@@ -117,7 +116,6 @@ export class Riscos implements OnInit {
       risco: risco.risco,
       nivel: risco.nivel,
       situacao: risco.situacao,
-      icone: risco.icone,
     };
     this.editandoId = risco.id;
     this.riscoVisualizado = null;
@@ -143,7 +141,7 @@ export class Riscos implements OnInit {
       risco: this.formulario.risco.trim(),
       nivel: nivelParaApi[this.formulario.nivel],
       situacao: situacaoParaApi[this.formulario.situacao],
-      icone: this.formulario.icone.trim() || null,
+      icone: null,
     };
     const requisicao = this.editandoId === null
       ? this.riscoApi.criar(dados)
@@ -179,7 +177,7 @@ export class Riscos implements OnInit {
       risco: risco.risco,
       nivel: nivelParaApi[risco.nivel],
       situacao: risco.situacao === 'Ativo' ? 'INATIVO' : 'ATIVO',
-      icone: risco.icone || null,
+      icone: null,
     };
     this.limparMensagens();
     this.riscoApi.atualizar(risco.id, dados).subscribe({
@@ -250,8 +248,17 @@ export class Riscos implements OnInit {
       risco: risco.risco,
       nivel: nivelDaApi[risco.nivel],
       situacao: situacaoDaApi[risco.situacao],
-      icone: risco.icone || 'bi-exclamation-triangle',
+      icone: this.iconePorNivel(nivelDaApi[risco.nivel]),
     };
+  }
+
+  iconePorNivel(nivel: NivelRiscoUi): string {
+    const icones: Record<NivelRiscoUi, string> = {
+      Alto: 'bi-shield-exclamation',
+      'Médio': 'bi-exclamation-triangle',
+      Baixo: 'bi-shield-check',
+    };
+    return icones[nivel];
   }
 
   private atualizarResumo(risco: Risco): void {
@@ -269,7 +276,6 @@ export class Riscos implements OnInit {
       risco: '',
       nivel: 'Médio',
       situacao: 'Ativo',
-      icone: 'bi-exclamation-triangle',
     };
   }
 

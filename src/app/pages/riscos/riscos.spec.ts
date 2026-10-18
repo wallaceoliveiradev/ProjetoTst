@@ -44,6 +44,13 @@ describe('Riscos', () => {
   it('loads risk rows on page entry without requiring a user click', () => {
     expect(component.riscos).toHaveLength(1);
     expect(component.riscos[0].risco).toBe('Choque elétrico');
+    expect(component.riscos[0].icone).toBe('bi-shield-exclamation');
     expect(component.carregando).toBe(false);
+  });
+
+  it('assigns a Bootstrap icon for each risk level', () => {
+    expect(component.iconePorNivel('Alto')).toBe('bi-shield-exclamation');
+    expect(component.iconePorNivel('Médio')).toBe('bi-exclamation-triangle');
+    expect(component.iconePorNivel('Baixo')).toBe('bi-shield-check');
   });
 });
