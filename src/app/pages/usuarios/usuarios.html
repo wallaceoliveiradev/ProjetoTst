@@ -31,19 +31,20 @@
       <div class="form-grid">
         <div class="form-group">
           <label for="novo-nome">Nome completo</label>
-          <input id="novo-nome" name="nome" [(ngModel)]="novoUsuario.nome" required />
+          <input id="novo-nome" name="nome" [(ngModel)]="novoUsuario.nome"
+            placeholder="Digite o nome completo" required />
         </div>
 
         <div class="form-group">
           <label for="novo-usuario">E-mail</label>
           <input id="novo-usuario" type="email" name="email" [(ngModel)]="novoUsuario.email"
-            autocomplete="email" required />
-          <small>Use um endereço válido, por exemplo nome@empresa.com.</small>
+            autocomplete="email" placeholder="Ex.: nome@empresa.com" required />
         </div>
 
         <div class="form-group">
           <label for="novo-cargo">Cargo</label>
-          <input id="novo-cargo" name="cargo" [(ngModel)]="novoUsuario.cargo" required />
+          <input id="novo-cargo" name="cargo" [(ngModel)]="novoUsuario.cargo"
+            placeholder="Ex.: Técnico de segurança" required />
         </div>
 
         <div class="form-group">
@@ -57,8 +58,8 @@
         <div class="form-group">
           <label for="nova-senha">Senha</label>
           <input id="nova-senha" type="password" name="senha" [(ngModel)]="novoUsuario.senha"
-            autocomplete="new-password" minlength="6" required />
-          <small>A senha deve ter pelo menos 6 caracteres.</small>
+            autocomplete="new-password" placeholder="Digite uma senha com pelo menos 6 caracteres"
+            minlength="6" required />
         </div>
 
       </div>

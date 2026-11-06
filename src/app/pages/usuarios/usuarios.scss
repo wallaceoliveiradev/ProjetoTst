@@ -40,7 +40,7 @@
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: minmax(0, 620px);
   gap: 14px;
 }
 
@@ -149,6 +149,7 @@ button:first-of-type {
 
 .cancel-button {
   background: #e0e0e0;
+  
 }
 
 .view-form,
