@@ -26,6 +26,12 @@ export interface EntregaEpiApi {
   itens: Array<{ nome: string; quantidade: number }>;
 }
 
+export interface EpiCatalogoApi {
+  nome: string;
+  categoria: string;
+  ca: string;
+}
+
 export interface EntregaEpiRequestApi {
   funcionarioId: number;
   dataEntrega: string;
@@ -42,6 +48,10 @@ export class EpisApiService {
     return this.http.get<EpisApiItem[]>(this.url);
   }
 
+  listarCatalogoColaborador(): Observable<EpiCatalogoApi[]> {
+    return this.http.get<EpiCatalogoApi[]>(`${this.url}/catalogo`);
+  }
+
   criar(epi: Omit<EpisApiItem, 'id'>): Observable<EpisApiItem> {
     return this.http.post<EpisApiItem>(this.url, epi);
   }
@@ -56,6 +66,10 @@ export class EpisApiService {
 
   listarEntregas(): Observable<EntregaEpiApi[]> {
     return this.http.get<EntregaEpiApi[]>(`${this.url}/entregas`);
+  }
+
+  listarMinhasEntregas(): Observable<EntregaEpiApi[]> {
+    return this.http.get<EntregaEpiApi[]>(`${this.url}/entregas/minhas`);
   }
 
   salvarEntrega(request: EntregaEpiRequestApi, id?: number): Observable<EntregaEpiApi> {

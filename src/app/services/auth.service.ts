@@ -93,7 +93,7 @@ export class AuthService {
     return localStorage.getItem('nomeUsuario') ?? '';
   }
 
-  getUsuarioLogado(): { nome: string; role: Perfil; email: string } | null {
+  getUsuarioLogado(): { id: number; nome: string; role: Perfil; email: string } | null {
     if (typeof window === 'undefined') {
       return null;
     }
@@ -110,7 +110,7 @@ export class AuthService {
         throw new Error(`Perfil de usuário não reconhecido: ${usuario.perfil}`);
       }
 
-      return { nome: usuario.nome, email: usuario.email, role: perfil };
+      return { id: usuario.id, nome: usuario.nome, email: usuario.email, role: perfil };
     } catch (erro) {
       console.error('Erro ao ler usuário autenticado:', erro);
       this.logout();

@@ -250,6 +250,7 @@
   }
 
   @if (abaAtual === 'entrega') {
+    @if (solicitacaoRecebida) { <div class="feedback-message feedback-success" role="status">{{ solicitacaoRecebida }}</div> }
     @if (feedbackEntrega) {
       <div
         class="feedback-message"

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service'; // 👈 importe o serviço
 
@@ -8,8 +8,9 @@ import { AuthService } from '../../services/auth.service'; // 👈 importe o ser
   templateUrl: './topbar.html',
   styleUrl: './topbar.scss',
 })
-export class Topbar {
+export class Topbar implements OnInit {
   searchTerm = '';
+  solicitacoesPendentes = 0;
 
   usuario = {
     nome: 'Administrador',
@@ -20,6 +21,24 @@ export class Topbar {
     public authService: AuthService,
     private router: Router
   ) {}
+
+  ngOnInit(): void {
+    if (typeof localStorage === 'undefined' || !this.authService.isAdmin()) return;
+    try {
+      this.solicitacoesPendentes = (JSON.parse(localStorage.getItem('solicitacoes-epis') || '[]') as Array<{ lida?: boolean }>).filter((item) => !item.lida).length;
+    } catch { this.solicitacoesPendentes = 0; }
+  }
+
+  abrirSolicitacoes(): void {
+    if (!this.authService.isAdmin()) return;
+    try {
+      const requests = JSON.parse(localStorage.getItem('solicitacoes-epis') || '[]') as Array<{id:number;funcionarioId:number;epi:string;quantidade:number;motivo:string;lida?:boolean}>;
+      const request = requests.find((item) => !item.lida);
+      if (request) {
+        this.router.navigate(['/sistema/epis-admin'], { queryParams: { aba: 'entrega', funcionarioId: request.funcionarioId, epi: request.epi, quantidade: request.quantidade, motivo: request.motivo, solicitacao: request.id } });
+      } else this.router.navigate(['/sistema/epis-admin'], { queryParams: { aba: 'entrega' } });
+    } catch { this.router.navigate(['/sistema/epis-admin'], { queryParams: { aba: 'entrega' } }); }
+  }
 
   resolveRoute(term: string): { path: string; queryParams?: Record<string, string> } {
     const normalized = term

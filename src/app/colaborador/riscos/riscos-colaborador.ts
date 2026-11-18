@@ -1,0 +1,1 @@
+﻿import {Component} from '@angular/core';import {RouterLink} from '@angular/router';@Component({selector:'app-riscos-colaborador',standalone:true,imports:[RouterLink],templateUrl:'./riscos-colaborador.html',styleUrl:'./riscos-colaborador.scss'})export class RiscosColaborador{}

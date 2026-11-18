@@ -1,4 +1,4 @@
-<!-- <nav class="navbar bg-white shadow-sm">
+﻿<!-- <nav class="navbar bg-white shadow-sm">
 
     <div class="container-fluid">
 
@@ -45,12 +45,11 @@
 
   <!-- Lado direito -->
   <div class="topbar-right">
-    <button class="icon-btn" aria-label="Notificações">
-      <i class="bi bi-bell"></i>
-    </button>
+    <button class="icon-btn" aria-label="Solicitações de EPI" (click)="abrirSolicitacoes()"><i class="bi bi-bell"></i>@if (solicitacoesPendentes > 0) { <span class="notification-count">{{ solicitacoesPendentes }}</span> }</button>
 
-    <!-- <button class="icon-btn" aria-label="Configurações">
+    <!-- <button class="icon-btn" aria-label="ConfiguraÃ§Ãµes">
       <i class="bi bi-gear"></i>
     </button> -->
   </div>
 </header>
+

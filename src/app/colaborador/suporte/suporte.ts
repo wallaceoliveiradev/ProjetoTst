@@ -1,0 +1,1 @@
+﻿import { Component } from '@angular/core';import {RouterLink} from '@angular/router';@Component({selector:'app-suporte',standalone:true,imports:[RouterLink],templateUrl:'./suporte.html',styleUrl:'./suporte.scss'})export class Suporte{}

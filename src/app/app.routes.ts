@@ -3,6 +3,13 @@ import { Layout } from './pages/layout/layout';
 import { Login } from './pages/login/login';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin-guard';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from './services/auth.service';
+
+const colaboradorGuard = () => inject(AuthService).isColaborador()
+  ? true
+  : inject(Router).createUrlTree(['/sistema']);
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -15,8 +22,9 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () =>
-          import('./pages/dashboard/dashboard').then((module) => module.Dashboard),
+        loadComponent: () => inject(AuthService).isColaborador()
+          ? import('./colaborador/dashboard-colaborador/dashboard-colaborador').then((module) => module.DashboardColaborador)
+          : import('./pages/dashboard/dashboard').then((module) => module.Dashboard),
       },
       {
         path: 'usuarios',
@@ -37,14 +45,31 @@ export const routes: Routes = [
       },
       {
         path: 'epis',
+        loadComponent: () => inject(AuthService).isColaborador()
+          ? import('./colaborador/meus-epis/meus-epis').then((module) => module.MeusEpis)
+          : import('./pages/epis/epis').then((module) => module.Epis),
+      },
+      {
+        path: 'meus-epis',
+        canActivate: [colaboradorGuard],
+        loadComponent: () => import('./colaborador/meus-epis/meus-epis').then((module) => module.MeusEpis),
+      },
+      {
+        path: 'suporte',
+        canActivate: [colaboradorGuard],
+        loadComponent: () => import('./colaborador/suporte/suporte').then((module) => module.Suporte),
+      },
+      {
+        path: 'epis-admin',
+        canActivate: [adminGuard],
         loadComponent: () =>
           import('./pages/epis/epis').then((module) => module.Epis),
       },
       {
         path: 'riscos',
-        canActivate: [adminGuard],
-        loadComponent: () =>
-          import('./pages/riscos/riscos').then((module) => module.Riscos),
+        loadComponent: () => inject(AuthService).isColaborador()
+          ? import('./colaborador/riscos/riscos-colaborador').then((module) => module.RiscosColaborador)
+          : import('./pages/riscos/riscos').then((module) => module.Riscos),
       },
       {
         path: 'relatorios',

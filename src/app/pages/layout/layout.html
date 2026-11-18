@@ -16,6 +16,13 @@
     <!-- MENU -->
     <nav>
       <ul>
+        @if (authService.isColaborador()) {
+        <li><a routerLink="/sistema" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a></li>
+        <li><a routerLink="/sistema/meus-epis" routerLinkActive="active">Meus EPIs</a></li>
+        <li><a routerLink="/sistema/treinamentos" routerLinkActive="active">Treinamentos</a></li>
+        <li><a routerLink="/sistema/riscos" routerLinkActive="active">Riscos</a></li>
+        <li><a routerLink="/sistema/suporte" routerLinkActive="active">Suporte</a></li>
+        } @else {
 
         <li>
           <a
@@ -38,7 +45,7 @@
 
         <li>
           <a
-            routerLink="/sistema/epis"
+            routerLink="/sistema/epis-admin"
             routerLinkActive="active"
           >
             Controle de EPIs
@@ -85,6 +92,7 @@
             </a>
           </li>
 
+        }
         }
 
       </ul>

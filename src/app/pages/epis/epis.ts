@@ -1,6 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { ChangeDetectorRef, Component, Inject, OnInit, PLATFORM_ID, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { EpisApiItem, EpisApiService } from '../../services/epis-api.service';
 import { UsuarioApi, UsuarioApiService } from '../../services/usuario-api.service';
 
@@ -136,11 +137,24 @@ export class Epis implements OnInit {
   private readonly episApi = inject(EpisApiService);
   private readonly usuarioApi = inject(UsuarioApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly route = inject(ActivatedRoute);
+  solicitacaoRecebida = '';
 
   constructor(@Inject(PLATFORM_ID) private readonly platformId: object) {}
 
   ngOnInit() {
     this.carregarDadosApi();
+    this.route.queryParamMap.subscribe((params) => {
+      if (params.get('aba') !== 'entrega' || !params.has('solicitacao')) return;
+      const funcionarioId = Number(params.get('funcionarioId'));
+      const epi = params.get('epi') ?? '';
+      const quantidade = Number(params.get('quantidade'));
+      const motivo = params.get('motivo') ?? '';
+      if (!funcionarioId || !epi || !Number.isInteger(quantidade) || quantidade < 1) return;
+      this.abaAtual = 'entrega';
+      this.entregaForm = { ...this.criarEntregaVazia(), funcionarioId, itens: [{ nome: epi, quantidade }], observacoes: motivo };
+      this.solicitacaoRecebida = `Solicitação de ${epi} (${quantidade}) recebida. Colaborador já selecionado para a entrega.`;
+    });
   }
 
   private carregarDadosApi() {
