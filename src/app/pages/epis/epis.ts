@@ -118,6 +118,10 @@ export class Epis implements OnInit {
     { nome: 'Máscara PFF2', categoria: 'Respiratória', ca: 'CA 41514' },
     { nome: 'Macacão de Proteção', categoria: 'Corpo', ca: 'CA 34183' },
     { nome: 'Avental de Raspa', categoria: 'Corpo', ca: 'CA 18856' },
+    { nome: 'Colete refletivo', categoria: 'Corpo', ca: '' },
+    { nome: 'Protetor de Chuva', categoria: 'Corpo', ca: '' },
+    { nome: 'Cinturão de segurança / trava-queda', categoria: 'Corpo', ca: '' },
+    { nome: 'Luvas impermeáveis', categoria: 'Mãos', ca: '' },
     { nome: 'Máscara para Solda', categoria: 'Olhos e Face', ca: 'CA 46614 / CA 34336' },
   ];
 

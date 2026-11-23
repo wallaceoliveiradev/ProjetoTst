@@ -23,6 +23,14 @@
     >
       Registrar novo usuário
     </button>
+    <button
+      *ngIf="authService.isAdmin()"
+      type="button"
+      [class.active]="subNavAtiva === 'riscos'"
+      (click)="abrirGestaoRiscoUsuario()"
+    >
+      Gestão de risco do usuário
+    </button>
   </nav>
 
   <section *ngIf="subNavAtiva === 'cadastro' && authService.isAdmin()" class="registro-form">
@@ -81,6 +89,58 @@
     <button type="button" (click)="buscarUsuario()">Buscar Usuário</button>
   </div>
 
+  <section *ngIf="subNavAtiva === 'riscos' && authService.isAdmin()" class="registro-form">
+    <h3>Gestão de risco do usuário</h3>
+    <div class="form-group user-risk-user-select">
+      <label for="usuario-riscos">Usuário</label>
+      <select id="usuario-riscos" name="usuarioRiscos" [ngModel]="usuarioGestaoRisco"
+        (ngModelChange)="selecionarUsuarioParaRiscos($event)">
+        <option [ngValue]="null">Selecione um usuário</option>
+        <option *ngFor="let usuario of usuariosElegiveisParaRiscos" [ngValue]="usuario">{{ usuario.nome }} — {{ usuario.cargo }}</option>
+      </select>
+    </div>
+
+    <ng-container *ngIf="usuarioGestaoRisco">
+      <h4>Associar risco</h4>
+      <p *ngIf="riscosMensagem" class="mensagem-alerta" role="status">{{ riscosMensagem }}</p>
+      <div class="associar-risco">
+        <div class="form-group">
+          <label for="risco-usuario">Risco ativo</label>
+          <select id="risco-usuario" name="riscoUsuario" [(ngModel)]="riscoSelecionadoId" required>
+            <option [ngValue]="null">Selecione um risco ativo</option>
+            <option *ngFor="let risco of riscosDisponiveis" [ngValue]="risco.id">
+              {{ risco.setor }} — {{ risco.risco }} ({{ risco.nivel }})
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="validade-risco">Validade</label>
+          <input id="validade-risco" name="validadeRisco" type="date" [(ngModel)]="novaValidade" [min]="hoje" required />
+        </div>
+        <button type="button" (click)="adicionarRiscoAoUsuario()">Adicionar</button>
+      </div>
+
+      <p *ngIf="riscosCarregando" role="status">Carregando associações...</p>
+      <table class="riscos-table" *ngIf="!riscosCarregando">
+        <thead><tr><th>Setor</th><th>Risco</th><th>Nível</th><th>Situação</th><th>Validade</th><th>Ações</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let risco of riscosEmEdicao">
+            <td>{{ risco.setor }}</td><td>{{ risco.risco }}</td><td>{{ risco.nivel }}</td><td>{{ risco.situacao }}</td>
+            <td>{{ risco.validade | date:'dd/MM/yyyy' }}</td>
+            <td><button type="button" class="cancel-button" (click)="removerRiscoDoUsuario(risco.riscoId)">Remover</button></td>
+          </tr>
+          <tr *ngIf="riscosEmEdicao.length === 0"><td colspan="6">Nenhuma associação adicionada.</td></tr>
+        </tbody>
+      </table>
+      <div class="edit-actions">
+        <button type="button" [disabled]="salvandoRiscos || riscosCarregando" (click)="salvarAssociacoesRisco()">
+          {{ salvandoRiscos ? 'Salvando...' : 'Salvar Associações' }}
+        </button>
+        <button type="button" class="cancel-button" [disabled]="salvandoRiscos" (click)="cancelarAssociacoesRisco()">Cancelar</button>
+      </div>
+    </ng-container>
+  </section>
+
   <section *ngIf="mensagem" class="mensagem-alerta">
     {{ mensagem }}
   </section>
@@ -125,86 +185,47 @@
     </tbody>
   </table>
 
-  <section *ngIf="usuarioVisualizado" class="view-form">
-    <h3>Gestão de Riscos de {{ usuarioVisualizado.nome }}</h3>
+  <section *ngIf="usuarioVisualizado && !usuarioSelecionado" class="view-form">
+    <h3>Informações</h3>
     <div class="detalhes-usuario">
+      <p><strong>Nome:</strong> {{ usuarioVisualizado.nome }}</p>
       <p><strong>Cargo:</strong> {{ usuarioVisualizado.cargo }}</p>
-      <p><strong>Perfil:</strong> {{ usuarioVisualizado.perfil }}</p>
+      <p><strong>Data de admissão:</strong> {{ usuarioVisualizado.dataCadastro ? (usuarioVisualizado.dataCadastro | date:'dd/MM/yyyy') : 'Não informado' }}</p>
       <p><strong>Status do usuário:</strong> {{ usuarioVisualizado.ativo ? 'Ativo' : 'Inativo' }}</p>
     </div>
 
-    <h4>Riscos associados</h4>
-    <p *ngIf="riscosCarregando" role="status">Carregando associações...</p>
-    <p *ngIf="riscosMensagem" class="mensagem-alerta" role="status">{{ riscosMensagem }}</p>
+    <ng-container *ngIf="usuarioVisualizado.perfil !== 'admin'">
+      <h4>Riscos associados</h4>
+      <p *ngIf="riscosCarregando" role="status">Carregando associações...</p>
+      <p *ngIf="riscosMensagem" class="mensagem-alerta" role="status">{{ riscosMensagem }}</p>
 
-    <div *ngIf="authService.isAdmin()" class="associar-risco">
-      <div class="form-group">
-        <label for="risco-usuario">Risco</label>
-        <select id="risco-usuario" name="riscoUsuario" [(ngModel)]="riscoSelecionadoId">
-          <option [ngValue]="null">Selecione um risco ativo</option>
-          <option *ngFor="let risco of riscosDisponiveis" [ngValue]="risco.id">
-            {{ risco.setor }} — {{ risco.risco }}
-          </option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="validade-risco">Validade</label>
-        <input id="validade-risco" name="validadeRisco" type="date" [(ngModel)]="novaValidade" />
-      </div>
-      <label class="checkbox-group">
-        <input type="checkbox" name="novoRiscoValidado" [(ngModel)]="novoRiscoValidado" />
-        Validado
-      </label>
-      <button type="button" (click)="adicionarRiscoAoUsuario()">Adicionar risco</button>
-    </div>
+      <table class="riscos-table" *ngIf="!riscosCarregando">
+        <thead>
+          <tr>
+            <th>Setor</th>
+            <th>Risco</th>
+            <th>Nível</th>
+            <th>Situação</th>
+            <th>Validade</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let risco of usuarioVisualizado.riscos">
+            <td>{{ risco.setor }}</td>
+            <td>{{ risco.risco }}</td>
+            <td>{{ risco.nivel }}</td>
+            <td>{{ risco.situacao }}</td>
+            <td>{{ risco.validade | date:'dd/MM/yyyy' }}</td>
+            <td><button *ngIf="authService.isAdmin()" type="button" (click)="abrirGestaoRiscoUsuario(usuarioVisualizado)">Gerenciar</button><span *ngIf="!authService.isAdmin()">—</span></td>
+          </tr>
+          <tr *ngIf="usuarioVisualizado.riscos.length === 0">
+            <td colspan="6">Nenhum risco associado a este usuário.</td>
+          </tr>
+        </tbody>
+      </table>
+    </ng-container>
 
-    <table class="riscos-table" *ngIf="!riscosCarregando">
-      <thead>
-        <tr>
-          <th>Setor</th>
-          <th>Risco</th>
-          <th>Nível</th>
-          <th>Situação</th>
-          <th>Validade</th>
-          <th>Validado</th>
-          <th>Validade vigente</th>
-          <th *ngIf="authService.isAdmin()">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let risco of usuarioVisualizado.riscos">
-          <td>{{ risco.setor }}</td>
-          <td>{{ risco.risco }}</td>
-          <td>{{ risco.nivel }}</td>
-          <td>{{ risco.situacao }}</td>
-          <td>
-            <input *ngIf="authService.isAdmin()" type="date"
-              [name]="'validade-' + risco.riscoId" [(ngModel)]="risco.validade" />
-            <span *ngIf="!authService.isAdmin()">{{ risco.validade | date:'dd/MM/yyyy' }}</span>
-          </td>
-          <td>
-            <input *ngIf="authService.isAdmin()" type="checkbox"
-              [name]="'validado-' + risco.riscoId" [(ngModel)]="risco.validado" />
-            <span *ngIf="!authService.isAdmin()">{{ risco.validado ? 'Sim' : 'Não' }}</span>
-          </td>
-          <td>{{ risco.validadeValida ? 'Sim' : 'Não' }}</td>
-          <td *ngIf="authService.isAdmin()">
-            <button type="button" class="cancel-button"
-              (click)="removerRiscoDoUsuario(risco.riscoId)">Remover</button>
-          </td>
-        </tr>
-        <tr *ngIf="usuarioVisualizado.riscos.length === 0">
-          <td [attr.colspan]="authService.isAdmin() ? 8 : 7">Nenhum risco associado a este usuário.</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div *ngIf="authService.isAdmin()" class="edit-actions">
-      <button type="button" [disabled]="salvandoRiscos || riscosCarregando"
-        (click)="salvarAssociacoesRisco()">
-        {{ salvandoRiscos ? 'Salvando...' : 'Salvar associações' }}
-      </button>
-    </div>
     <button type="button" class="close-view" (click)="usuarioVisualizado = null">Fechar</button>
   </section>
 

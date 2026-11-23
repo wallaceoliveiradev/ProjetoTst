@@ -16,6 +16,7 @@ describe('authInterceptor', () => {
 
   beforeEach(() => {
     localStorage.setItem('accessToken', 'token-antigo-invalido');
+    localStorage.setItem('tokenExpiresAt', String(Date.now() + 60_000));
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([authInterceptor])),
@@ -28,6 +29,7 @@ describe('authInterceptor', () => {
   afterEach(() => {
     httpTesting.verify();
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('tokenExpiresAt');
   });
 
   it('does not send a previously stored token to the login endpoint', () => {

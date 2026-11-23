@@ -10,6 +10,11 @@ export interface UsuarioApi {
   perfil: Perfil;
   cargo: string | null;
   status: 'ATIVO' | 'INATIVO';
+  dataCadastro?: string | null;
+  dataAdmissao?: string | null;
+  dataCriacao?: string | null;
+  criadoEm?: string | null;
+  createdAt?: string | null;
 }
 
 interface UsuarioApiResponse extends Omit<UsuarioApi, 'perfil' | 'status'> {

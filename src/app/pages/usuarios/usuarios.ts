@@ -30,6 +30,7 @@ interface Usuario {
   cargo: string;
   perfil: Perfil;
   ativo: boolean;
+  dataCadastro: string | null;
   riscos: RiscoUsuario[];
 }
 
@@ -52,13 +53,20 @@ export class UsuariosComponent implements OnInit {
 
   termoBusca = '';
   mensagem = '';
-  subNavAtiva: 'lista' | 'cadastro' = 'lista';
+  subNavAtiva: 'lista' | 'cadastro' | 'riscos' = 'lista';
 
   usuarios: Usuario[] = [];
+
+  get usuariosElegiveisParaRiscos(): Usuario[] {
+    return this.usuarios.filter((usuario) => usuario.perfil !== 'admin');
+  }
 
   usuariosFiltrados: Usuario[] = [];
 
   usuarioVisualizado: Usuario | null = null;
+  usuarioGestaoRisco: Usuario | null = null;
+  riscosEmEdicao: RiscoUsuario[] = [];
+  riscosOriginais: RiscoUsuario[] = [];
   usuarioSelecionado: Usuario | null = null;
   novoUsuario: CadastroUsuario = this.novoUsuarioVazio();
   riscosDisponiveis: RiscoApi[] = [];
@@ -67,7 +75,7 @@ export class UsuariosComponent implements OnInit {
   riscosMensagem = '';
   riscoSelecionadoId: number | null = null;
   novaValidade = '';
-  novoRiscoValidado = false;
+  readonly hoje = this.dataHojeLocal();
 
   constructor(
     public authService: AuthService,
@@ -95,6 +103,7 @@ export class UsuariosComponent implements OnInit {
         cargo: usuario.cargo ?? '',
         perfil: usuario.perfil,
         ativo: usuario.status === 'ATIVO',
+        dataCadastro: usuario.dataCadastro ?? usuario.dataAdmissao ?? usuario.dataCriacao ?? usuario.criadoEm ?? usuario.createdAt ?? null,
         riscos: [],
       }));
       this.buscarUsuario();
@@ -172,10 +181,16 @@ export class UsuariosComponent implements OnInit {
       return;
     }
 
+    this.usuarioSelecionado = null;
+    this.usuarioGestaoRisco = null;
     this.usuarioVisualizado = { ...usuario, riscos: [] };
-    this.riscosDisponiveis = [];
     this.riscosMensagem = '';
     this.riscosCarregando = true;
+
+    if (usuario.perfil === 'admin') {
+      this.riscosCarregando = false;
+      return;
+    }
 
     const requisicao = this.authService.isAdmin()
       ? this.riscosApi.listarAssociacoes(usuario.id)
@@ -197,42 +212,90 @@ export class UsuariosComponent implements OnInit {
       },
     });
 
-    if (this.authService.isAdmin()) {
-      this.riscosApi.listar({ situacao: 'ATIVO' }).subscribe({
-        next: (riscos) => {
-          this.riscosDisponiveis = riscos;
-          this.changeDetector.markForCheck();
-        },
-        error: (erro: HttpErrorResponse) => {
-          this.riscosMensagem = erro.status === 0
-            ? 'Não foi possível conectar à API para carregar riscos disponíveis.'
-            : `Não foi possível carregar riscos disponíveis (HTTP ${erro.status}).`;
-          this.changeDetector.markForCheck();
-        },
-      });
+  }
+
+  abrirGestaoRiscoUsuario(usuario: Usuario | null = null): void {
+    if (!this.authService.isAdmin()) return;
+    if (usuario?.perfil === 'admin') {
+      this.riscosMensagem = 'Não é possível associar riscos a um perfil administrador.';
+      return;
     }
+    this.usuarioVisualizado = null;
+    this.usuarioSelecionado = null;
+    this.subNavAtiva = 'riscos';
+    this.usuarioGestaoRisco = null;
+    this.riscosEmEdicao = [];
+    this.riscosOriginais = [];
+    this.riscosMensagem = '';
+    this.riscosApi.listar({ situacao: 'ATIVO' }).subscribe({
+      next: (riscos) => {
+        this.riscosDisponiveis = riscos.filter((risco) => risco.situacao === 'ATIVO');
+        if (usuario) this.selecionarUsuarioParaRiscos(usuario);
+        this.changeDetector.markForCheck();
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.riscosMensagem = erro.status === 0
+          ? 'Não foi possível conectar à API para carregar riscos ativos.'
+          : `Não foi possível carregar riscos ativos (HTTP ${erro.status}).`;
+        this.changeDetector.markForCheck();
+      },
+    });
+  }
+
+  selecionarUsuarioParaRiscos(usuario: Usuario | null): void {
+    if (usuario?.perfil === 'admin') {
+      this.usuarioGestaoRisco = null;
+      this.riscosEmEdicao = [];
+      this.riscosOriginais = [];
+      this.riscosMensagem = 'Não é possível associar riscos a um perfil administrador.';
+      return;
+    }
+    this.usuarioGestaoRisco = usuario;
+    this.riscosEmEdicao = [];
+    this.riscosOriginais = [];
+    this.riscoSelecionadoId = null;
+    this.novaValidade = '';
+    this.riscosMensagem = '';
+    if (!usuario) return;
+    this.riscosCarregando = true;
+    this.riscosApi.listarAssociacoes(usuario.id).subscribe({
+      next: (riscos) => {
+        if (this.usuarioGestaoRisco?.id !== usuario.id) return;
+        this.riscosOriginais = riscos.map((risco) => this.adaptarRiscoUsuario(risco));
+        this.riscosEmEdicao = this.riscosOriginais.map((risco) => ({ ...risco }));
+        this.riscosCarregando = false;
+        this.changeDetector.markForCheck();
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.riscosCarregando = false;
+        this.riscosMensagem = erro.status === 0
+          ? 'Não foi possível conectar à API para carregar as associações.'
+          : `Não foi possível carregar as associações (HTTP ${erro.status}).`;
+        this.changeDetector.markForCheck();
+      },
+    });
   }
 
   adicionarRiscoAoUsuario(): void {
-    if (!this.usuarioVisualizado || !this.authService.isAdmin()) {
+    if (!this.usuarioGestaoRisco || !this.authService.isAdmin()) {
       return;
     }
-    if (this.riscoSelecionadoId === null || !this.novaValidade) {
-      this.riscosMensagem = 'Selecione um risco e informe a validade.';
+    if (this.riscoSelecionadoId === null || !this.novaValidade || this.novaValidade < this.hoje) {
+      this.riscosMensagem = 'Selecione um risco ativo e informe uma validade válida.';
       return;
     }
-    if (this.usuarioVisualizado.riscos.some((risco) => risco.riscoId === this.riscoSelecionadoId)) {
+    if (this.riscosEmEdicao.some((risco) => risco.riscoId === this.riscoSelecionadoId)) {
       this.riscosMensagem = 'Este risco já está associado a este usuário.';
       return;
     }
 
     const risco = this.riscosDisponiveis.find((item) => item.id === this.riscoSelecionadoId);
-    if (!risco) {
-      this.riscosMensagem = 'O risco selecionado não está mais disponível.';
+    if (!risco || risco.situacao !== 'ATIVO') {
+      this.riscosMensagem = 'Selecione um risco ativo disponível.';
       return;
     }
 
-    this.usuarioVisualizado.riscos.push({
+    this.riscosEmEdicao.push({
       riscoId: risco.id,
       setor: risco.setor,
       risco: risco.risco,
@@ -240,46 +303,44 @@ export class UsuariosComponent implements OnInit {
       situacao: 'Ativo',
       validade: this.novaValidade,
       validadeValida: this.novaValidade >= new Date().toISOString().slice(0, 10),
-      validado: this.novoRiscoValidado,
+      validado: false,
     });
     this.riscoSelecionadoId = null;
     this.novaValidade = '';
-    this.novoRiscoValidado = false;
-    this.riscosMensagem = 'Risco adicionado. Salve as associações para confirmar.';
+    this.riscosMensagem = 'Risco adicionado à lista. Salve as associações para confirmar.';
     this.changeDetector.markForCheck();
   }
 
   removerRiscoDoUsuario(riscoId: number): void {
-    if (!this.usuarioVisualizado || !this.authService.isAdmin()) {
+    if (!this.usuarioGestaoRisco || !this.authService.isAdmin()) {
       return;
     }
-    this.usuarioVisualizado.riscos = this.usuarioVisualizado.riscos
+    this.riscosEmEdicao = this.riscosEmEdicao
       .filter((risco) => risco.riscoId !== riscoId);
     this.riscosMensagem = 'Associação removida da lista. Salve para confirmar.';
     this.changeDetector.markForCheck();
   }
 
   salvarAssociacoesRisco(): void {
-    if (!this.usuarioVisualizado || !this.authService.isAdmin() || this.salvandoRiscos) {
+    if (!this.usuarioGestaoRisco || !this.authService.isAdmin() || this.salvandoRiscos) {
       return;
     }
 
-    if (this.usuarioVisualizado.riscos.some((risco) => !risco.validade)) {
+    if (this.riscosEmEdicao.some((risco) => !risco.validade)) {
       this.riscosMensagem = 'Informe a validade de todas as associações.';
       return;
     }
 
-    const associacoes: RiscoUsuarioRequestApi[] = this.usuarioVisualizado.riscos.map((risco) => ({
+    const associacoes: RiscoUsuarioRequestApi[] = this.riscosEmEdicao.map((risco) => ({
       riscoId: risco.riscoId,
       validade: risco.validade,
       validado: risco.validado,
     }));
     this.salvandoRiscos = true;
-    this.riscosApi.substituirAssociacoes(this.usuarioVisualizado.id, associacoes).subscribe({
+    this.riscosApi.substituirAssociacoes(this.usuarioGestaoRisco.id, associacoes).subscribe({
       next: (riscos) => {
-        if (this.usuarioVisualizado) {
-          this.usuarioVisualizado.riscos = riscos.map((risco) => this.adaptarRiscoUsuario(risco));
-        }
+        this.riscosOriginais = riscos.map((risco) => this.adaptarRiscoUsuario(risco));
+        this.riscosEmEdicao = this.riscosOriginais.map((risco) => ({ ...risco }));
         this.riscosMensagem = 'Associações de riscos salvas com sucesso.';
         this.salvandoRiscos = false;
         this.changeDetector.markForCheck();
@@ -292,6 +353,13 @@ export class UsuariosComponent implements OnInit {
         this.changeDetector.markForCheck();
       },
     });
+  }
+
+  cancelarAssociacoesRisco(): void {
+    this.riscosEmEdicao = this.riscosOriginais.map((risco) => ({ ...risco }));
+    this.riscoSelecionadoId = null;
+    this.novaValidade = '';
+    this.riscosMensagem = '';
   }
 
   editarUsuario(usuario: Usuario): void {
@@ -313,6 +381,7 @@ export class UsuariosComponent implements OnInit {
       return;
     }
 
+    this.usuarioVisualizado = null;
     this.usuarioSelecionado = { ...usuario };
     this.mensagem = '';
   }
@@ -348,11 +417,16 @@ export class UsuariosComponent implements OnInit {
     }
 
     this.mensagem = '';
+    this.usuarioVisualizado = null;
+    this.usuarioSelecionado = null;
     this.subNavAtiva = 'cadastro';
   }
 
   mostrarUsuarios(): void {
     this.mensagem = '';
+    this.usuarioVisualizado = null;
+    this.usuarioSelecionado = null;
+    this.usuarioGestaoRisco = null;
     this.subNavAtiva = 'lista';
   }
 
@@ -463,5 +537,13 @@ export class UsuariosComponent implements OnInit {
       BAIXO: 'Baixo',
     };
     return niveis[nivel];
+  }
+
+  private dataHojeLocal(): string {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
   }
 }

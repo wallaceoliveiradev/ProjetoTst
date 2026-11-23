@@ -14,6 +14,13 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     return next(request);
   }
 
+  // Do not send a token the client already knows has expired. The API will
+  // otherwise reject every protected request with 401 until the user logs in.
+  const expiresAt = Number(localStorage.getItem('tokenExpiresAt'));
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    return next(request);
+  }
+
   return next(
     request.clone({
       setHeaders: { Authorization: `Bearer ${token}` },

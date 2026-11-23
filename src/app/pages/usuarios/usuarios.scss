@@ -64,13 +64,19 @@
   margin-top: 18px;
 }
 
+.form-actions button,
+.edit-actions button {
+  box-sizing: border-box;
+  width: 180px;
+}
+
 .form-actions button + button {
   margin-left: 0;
 }
 
 .form-actions .cancel-button {
   background: #e0e0e0;
-  color: #333;
+  color: #141414;
 }
 
 .acoes {
@@ -182,7 +188,7 @@ button:first-of-type {
 
 .associar-risco {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) minmax(170px, 1fr) auto auto;
+  grid-template-columns: minmax(220px, 2fr) minmax(170px, 1fr) auto;
   gap: 14px;
   align-items: end;
   margin: 16px 0;
@@ -190,6 +196,10 @@ button:first-of-type {
   border: 1px solid #ddd;
   border-radius: 6px;
   background: #fff;
+}
+
+.user-risk-user-select {
+  max-width: 620px;
 }
 
 .associar-risco .form-group {

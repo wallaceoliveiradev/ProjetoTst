@@ -43,7 +43,11 @@ export class Dashboard implements OnInit {
       error: (erro: HttpErrorResponse) => {
         this.dados.set(null);
         this.erro.set(
-          erro.status === 0
+          erro.status === 401
+            ? 'Sua sessão expirou ou o token foi recusado pela API. Entre novamente e tente carregar os indicadores.'
+            : erro.status === 403
+              ? 'Sua conta não tem permissão para consultar os indicadores do dashboard.'
+              : erro.status === 0
             ? 'Não foi possível conectar à API. Verifique se o servidor está disponível.'
             : `Não foi possível carregar os indicadores (HTTP ${erro.status}).`,
         );
