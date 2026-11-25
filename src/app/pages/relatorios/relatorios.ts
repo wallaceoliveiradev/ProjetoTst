@@ -38,7 +38,7 @@ const tiposDisponiveis: Array<{ valor: TipoRelatorio; rotulo: string }> = [
   { valor: 'checklist', rotulo: 'Checklist de Segurança' },
 ];
 
-const coresGrafico = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#14b8a6'];
+const coresGrafico = ['#f4bf1d', '#17633f', '#58665d', '#805000', '#9da99f'];
 
 @Component({
   selector: 'app-relatorios',
@@ -159,11 +159,15 @@ export class Relatorios implements OnInit, OnDestroy {
 
   get riscosPorNivel(): RelatorioQuantidade[] {
     const normalizar = (valor: string) =>
-      valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+      valor
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('pt-BR');
     const dados = this.resumo()?.riscosPorNivel ?? [];
     return ['Alto', 'Médio', 'Baixo'].map((rotulo) => ({
       rotulo,
-      quantidade: dados.find((item) => normalizar(item.rotulo) === normalizar(rotulo))?.quantidade ?? 0,
+      quantidade:
+        dados.find((item) => normalizar(item.rotulo) === normalizar(rotulo))?.quantidade ?? 0,
     }));
   }
 
@@ -219,8 +223,9 @@ export class Relatorios implements OnInit, OnDestroy {
     if (!ano || !mes) {
       return anoMes;
     }
-    return new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: 'UTC' })
-      .format(new Date(Date.UTC(ano, mes - 1, 1)));
+    return new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(ano, mes - 1, 1)),
+    );
   }
 
   exportarPDF(): void {
@@ -230,10 +235,19 @@ export class Relatorios implements OnInit, OnDestroy {
     }
 
     const pdf = new jsPDF();
+    pdf.setFillColor(244, 191, 29);
+    pdf.rect(0, 0, 210, 12, 'F');
+    pdf.setTextColor(24, 37, 30);
+    pdf.setFontSize(10);
+    pdf.text('CRISÂNTEMOS | SST', 14, 8);
     pdf.setFontSize(18);
     pdf.text(dados.titulo, 14, 20);
     pdf.setFontSize(10);
-    pdf.text(`Período: ${this.formatarData(dados.inicio)} a ${this.formatarData(dados.fim)}`, 14, 29);
+    pdf.text(
+      `Período: ${this.formatarData(dados.inicio)} a ${this.formatarData(dados.fim)}`,
+      14,
+      29,
+    );
     pdf.text(`Emitido em: ${this.formatarEmissao(dados.geradoEm)}`, 14, 36);
 
     autoTable(pdf, {
@@ -241,10 +255,10 @@ export class Relatorios implements OnInit, OnDestroy {
       head: [dados.colunas],
       body: dados.linhas.map((linha) => linha.map((valor) => valor ?? '')),
       theme: 'grid',
-      headStyles: { fillColor: [31, 41, 55], textColor: 255 },
+      headStyles: { fillColor: [244, 191, 29], textColor: [24, 37, 30] },
     });
     pdf.setFontSize(9);
-    pdf.text('Sistema TST - Segurança e Saúde do Trabalho', 14, 285);
+    pdf.text('Crisântemos - Saúde e Segurança do Trabalho', 14, 285);
     pdf.save(`${dados.tipo}-${dados.inicio}-a-${dados.fim}.pdf`);
   }
 

@@ -1,3 +1,6 @@
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
+import { provideRouter } from '@angular/router';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
@@ -8,15 +11,19 @@ import { HistoricoTreinamento, ParametroTreinamento } from './treinamento.model'
 import { Treinamentos } from './treinamentos';
 
 describe('Treinamentos', () => {
+  const parametrosDaRota = new BehaviorSubject(convertToParamMap({}));
   let component: Treinamentos;
   let fixture: ComponentFixture<Treinamentos>;
   let excluirParametro: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
+    parametrosDaRota.next(convertToParamMap({}));
     excluirParametro = vi.fn(() => of(void 0));
     await TestBed.configureTestingModule({
       imports: [Treinamentos],
       providers: [
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { queryParamMap: parametrosDaRota } },
         { provide: AuthService, useValue: { isAdmin: () => true } },
         {
           provide: TreinamentoService,
@@ -39,9 +46,17 @@ describe('Treinamentos', () => {
     await fixture.whenStable();
   });
 
+  it('abre certificados e reciclagens ao receber os atalhos do dashboard', () => {
+    parametrosDaRota.next(convertToParamMap({ aba: 'certificados' }));
+    expect(component.abaAtiva).toBe('certificados');
+    parametrosDaRota.next(convertToParamMap({ aba: 'reciclagens' }));
+    expect(component.abaAtiva).toBe('reciclagens');
+  });
   it('mostra as cinco subnavs de treinamentos', () => {
     const buttons = Array.from(
-      fixture.nativeElement.querySelectorAll('.training-sub-nav button') as NodeListOf<HTMLButtonElement>,
+      fixture.nativeElement.querySelectorAll(
+        '.training-sub-nav button',
+      ) as NodeListOf<HTMLButtonElement>,
     );
 
     expect(buttons.map((button) => button.textContent?.trim())).toEqual([

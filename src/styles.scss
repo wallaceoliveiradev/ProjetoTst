@@ -1,106 +1,34 @@
-:root {
-  --gold: #d4af37;
-  --gold-deep: #b8921d;
-  --charcoal: #0f1a1a;
-  --charcoal-soft: #1d2d2d;
-  --cream: #f5f0e6;
-  --cream-strong: #e7e0d4;
-  --text: #111111;
-  --muted: #5e5e5e;
-  --white: #ffffff;
-  --danger: #d92b2b;
-}
+@use './styles/tokens';
+@use './styles/components';
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
-
-html, body {
+html,
+body {
   margin: 0;
   min-height: 100%;
-  background: var(--cream);
-  color: var(--text);
-  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--sst-text);
+  background: var(--sst-bg);
+  font: 14px/1.5 var(--sst-font);
 }
-
 body {
   min-height: 100vh;
 }
-
-a, button, input {
+a,
+button,
+input,
+select,
+textarea {
   font: inherit;
 }
-
 img {
   max-width: 100%;
   display: block;
 }
-
-.app-page-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  min-width: 0;
-  font-family: 'Inter', sans-serif;
-}
-
-.app-page-heading__content {
-  min-width: 0;
-}
-
-.app-page-heading__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  color: #94701a;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-}
-
-.app-page-heading__eyebrow i {
-  font-size: 1rem;
-}
-
-.app-page-heading .app-page-heading__title {
-  margin: 0;
-  color: #141b29;
-  font-size: clamp(1.65rem, 2.3vw, 2.25rem);
-  font-weight: 800;
-  letter-spacing: -0.045em;
-}
-
-.app-page-heading__description {
-  margin: 9px 0 0;
-  color: #737b89;
-  font-size: 0.92rem;
-  line-height: 1.6;
-}
-
-.app-page-heading__actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.app-page-heading__profile {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
-}
-
-@media (max-width: 640px) {
-  .app-page-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .app-page-heading__actions {
-    justify-content: flex-start;
-  }
+:focus-visible {
+  outline: 3px solid var(--sst-warning);
+  outline-offset: 3px;
 }

@@ -1,17 +1,27 @@
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
+import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Epis } from './epis';
 
 describe('Epis', () => {
+  const parametrosDaRota = new BehaviorSubject(convertToParamMap({}));
   let component: Epis;
   let fixture: ComponentFixture<Epis>;
   let http: HttpTestingController;
 
   beforeEach(async () => {
+    parametrosDaRota.next(convertToParamMap({}));
     await TestBed.configureTestingModule({
       imports: [Epis],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { queryParamMap: parametrosDaRota } },
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
 
     http = TestBed.inject(HttpTestingController);
@@ -19,12 +29,42 @@ describe('Epis', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
     http.expectOne('http://localhost:8080/api/epis').flush([
-      { id: 11, nome: 'Capacete', categoria: 'Cabeça', dataEntrada: '2026-01-01', quantidade: 10, validade: '2027-01-01', ca: 'CA 1' },
-      { id: 12, nome: 'Óculos', categoria: 'Olhos', dataEntrada: '2026-01-01', quantidade: 5, validade: '2027-01-01', ca: 'CA 2' },
+      {
+        id: 11,
+        nome: 'Capacete',
+        categoria: 'Cabeça',
+        dataEntrada: '2026-01-01',
+        quantidade: 10,
+        validade: '2027-01-01',
+        ca: 'CA 1',
+      },
+      {
+        id: 12,
+        nome: 'Óculos',
+        categoria: 'Olhos',
+        dataEntrada: '2026-01-01',
+        quantidade: 5,
+        validade: '2027-01-01',
+        ca: 'CA 2',
+      },
     ]);
     http.expectOne('http://localhost:8080/api/usuarios').flush([
-      { id: 1, nome: 'Funcionário ativo', email: 'ativo@example.test', perfil: 'colaborador', cargo: 'Técnico', status: 'ATIVO' },
-      { id: 2, nome: 'Funcionário inativo', email: 'inativo@example.test', perfil: 'colaborador', cargo: 'Técnico', status: 'INATIVO' },
+      {
+        id: 1,
+        nome: 'Funcionário ativo',
+        email: 'ativo@example.test',
+        perfil: 'colaborador',
+        cargo: 'Técnico',
+        status: 'ATIVO',
+      },
+      {
+        id: 2,
+        nome: 'Funcionário inativo',
+        email: 'inativo@example.test',
+        perfil: 'colaborador',
+        cargo: 'Técnico',
+        status: 'INATIVO',
+      },
     ]);
     http.expectOne('http://localhost:8080/api/epis/entregas').flush([]);
     await fixture.whenStable();
@@ -32,6 +72,24 @@ describe('Epis', () => {
 
   afterEach(() => http.verify());
 
+  it('abre o estoque sem perder o preenchimento de solicitações vindo do sino', () => {
+    parametrosDaRota.next(convertToParamMap({ aba: 'cadastro' }));
+    expect(component.abaAtual).toBe('cadastro');
+    parametrosDaRota.next(
+      convertToParamMap({
+        aba: 'entrega',
+        solicitacao: '10',
+        funcionarioId: '1',
+        epi: 'Capacete',
+        quantidade: '2',
+        motivo: 'Reposição',
+      }),
+    );
+    expect(component.abaAtual).toBe('entrega');
+    expect(component.entregaForm.funcionarioId).toBe(1);
+    expect(component.entregaForm.itens).toEqual([{ nome: 'Capacete', quantidade: 2 }]);
+    expect(component.entregaForm.observacoes).toBe('Reposição');
+  });
   it('uses only active users and database EPIs in the delivery form', () => {
     expect(component.funcionarios.map((user) => user.id)).toEqual([1]);
     expect(component.opcoesEpiParaEntrega.map((epi) => epi.nome)).toEqual(['Capacete', 'Óculos']);
@@ -78,8 +136,24 @@ describe('Epis', () => {
     });
 
     http.expectOne('http://localhost:8080/api/epis').flush([
-      { id: 11, nome: 'Capacete', categoria: 'Cabeça', dataEntrada: '2026-01-01', quantidade: 8, validade: '2027-01-01', ca: 'CA 1' },
-      { id: 12, nome: 'Óculos', categoria: 'Olhos', dataEntrada: '2026-01-01', quantidade: 4, validade: '2027-01-01', ca: 'CA 2' },
+      {
+        id: 11,
+        nome: 'Capacete',
+        categoria: 'Cabeça',
+        dataEntrada: '2026-01-01',
+        quantidade: 8,
+        validade: '2027-01-01',
+        ca: 'CA 1',
+      },
+      {
+        id: 12,
+        nome: 'Óculos',
+        categoria: 'Olhos',
+        dataEntrada: '2026-01-01',
+        quantidade: 4,
+        validade: '2027-01-01',
+        ca: 'CA 2',
+      },
     ]);
     expect(component.entregas[0].epi).toBe('Capacete, Óculos');
     expect(component.episCadastrados.map((epi) => epi.quantidade)).toEqual([8, 4]);
@@ -105,10 +179,12 @@ describe('Epis', () => {
     component.entregaForm.itens = [{ nome: 'Capacete', quantidade: 99 }];
     component.registrarEntrega();
 
-    http.expectOne('http://localhost:8080/api/epis/entregas').flush(
-      { message: 'Estoque insuficiente para Capacete. Disponível: 10.' },
-      { status: 409, statusText: 'Conflict' },
-    );
+    http
+      .expectOne('http://localhost:8080/api/epis/entregas')
+      .flush(
+        { message: 'Estoque insuficiente para Capacete. Disponível: 10.' },
+        { status: 409, statusText: 'Conflict' },
+      );
 
     expect(component.feedbackEntrega).toContain('Estoque insuficiente');
     expect(component.episCadastrados.find((epi) => epi.nome === 'Capacete')?.quantidade).toBe(10);

@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 export type Perfil = 'admin' | 'colaborador';
@@ -19,14 +19,15 @@ export interface LoginApiResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly nomeAtualizado = signal<string | null>(null);
   private readonly apiUrl = 'http://localhost:8080/api/auth/login';
 
   constructor(private http: HttpClient) {}
 
   loginApi(email: string, senha: string): Observable<LoginApiResponse> {
-    return this.http.post<LoginApiResponse>(this.apiUrl, { email, senha }).pipe(
-      tap((resposta) => this.gravarSessao(resposta)),
-    );
+    return this.http
+      .post<LoginApiResponse>(this.apiUrl, { email, senha })
+      .pipe(tap((resposta) => this.gravarSessao(resposta)));
   }
 
   private gravarSessao(resposta: LoginApiResponse): void {
@@ -35,14 +36,12 @@ export class AuthService {
     }
 
     localStorage.setItem('accessToken', resposta.token);
-    localStorage.setItem(
-      'tokenExpiresAt',
-      String(Date.now() + resposta.expiresIn * 1000),
-    );
+    localStorage.setItem('tokenExpiresAt', String(Date.now() + resposta.expiresIn * 1000));
     localStorage.setItem('perfil', resposta.usuario.perfil.toLowerCase());
     localStorage.setItem('nomeUsuario', resposta.usuario.nome);
     localStorage.setItem('usuarioLogado', JSON.stringify(resposta.usuario));
     localStorage.removeItem('isLoggedIn');
+    this.nomeAtualizado.set(resposta.usuario.nome);
   }
 
   logout(): void {
@@ -56,6 +55,7 @@ export class AuthService {
     localStorage.removeItem('nomeUsuario');
     localStorage.removeItem('usuarioLogado');
     localStorage.removeItem('isLoggedIn');
+    this.nomeAtualizado.set(null);
   }
 
   isAuthenticated(): boolean {
@@ -90,7 +90,17 @@ export class AuthService {
       return '';
     }
 
-    return localStorage.getItem('nomeUsuario') ?? '';
+    return this.nomeAtualizado() ?? localStorage.getItem('nomeUsuario') ?? '';
+  }
+
+  atualizarNomeLocal(nome: string): void {
+    if (typeof window === 'undefined' || !this.getUsuarioLogado()) return;
+    const usuario = JSON.parse(
+      localStorage.getItem('usuarioLogado') || '{}',
+    ) as LoginApiResponse['usuario'];
+    localStorage.setItem('usuarioLogado', JSON.stringify({ ...usuario, nome }));
+    localStorage.setItem('nomeUsuario', nome);
+    this.nomeAtualizado.set(nome);
   }
 
   getUsuarioLogado(): { id: number; nome: string; role: Perfil; email: string } | null {
@@ -110,7 +120,12 @@ export class AuthService {
         throw new Error(`Perfil de usuário não reconhecido: ${usuario.perfil}`);
       }
 
-      return { id: usuario.id, nome: usuario.nome, email: usuario.email, role: perfil };
+      return {
+        id: usuario.id,
+        nome: this.nomeAtualizado() ?? usuario.nome,
+        email: usuario.email,
+        role: perfil,
+      };
     } catch (erro) {
       console.error('Erro ao ler usuário autenticado:', erro);
       this.logout();

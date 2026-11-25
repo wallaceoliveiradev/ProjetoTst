@@ -1,1 +1,44 @@
-﻿.risks{max-width:850px;margin:40px auto;padding:30px;color:#21342b}.risks>span{color:#55836a;font-size:.78rem;font-weight:700;letter-spacing:.1em}.risks article{padding:22px;margin-top:24px;border:1px solid #e0e7e2;border-radius:14px;background:white}.risks a{color:#26724f}
+.risks {
+  max-width: 900px;
+  margin: 0 auto;
+  color: var(--sst-text);
+}
+.risks > span {
+  color: var(--sst-warning);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+h1 {
+  font-size: 28px;
+  margin: 8px 0;
+}
+h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+p {
+  color: var(--sst-muted);
+}
+article {
+  padding: 24px;
+  margin: 24px 0;
+  background: var(--sst-surface);
+  border: 1px solid var(--sst-border);
+  border-radius: var(--sst-radius);
+}
+article > i {
+  color: var(--sst-warning);
+  font-size: 24px;
+}
+a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--sst-yellow);
+  color: var(--sst-text);
+  font-weight: 600;
+  text-decoration: none;
+}

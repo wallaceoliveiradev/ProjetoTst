@@ -1,55 +1,50 @@
-﻿<!-- <nav class="navbar bg-white shadow-sm">
-
-    <div class="container-fluid">
-
-        <h5 class="mb-0">
-            
-        </h5>
-
-        <div>
-
-            <button class="btn position-relative me-3">
-
-                <i class="bi bi-bell fs-5"></i>
-
-                <span
-                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-
-                    2
-
-                </span>
-
-            </button>
-
-            <span>{{ usuario.nome }}</span>
-
-        </div>
-
-    </div>
-
-</nav> -->
-
-<!-- Topbar -->
 <header class="topbar">
-  <!-- Pesquisa -->
   <div class="search-box">
-    <i class="bi bi-search"></i>
+    <i class="bi bi-search" aria-hidden="true"></i>
     <input
-      type="text"
+      type="search"
+      aria-label="Pesquisar no sistema"
       placeholder="Pesquisar..."
       [value]="searchTerm"
       (input)="searchTerm = $any($event.target).value"
       (keydown.enter)="buscar()"
     />
   </div>
-
-  <!-- Lado direito -->
   <div class="topbar-right">
-    <button class="icon-btn" aria-label="Solicitações de EPI" (click)="abrirSolicitacoes()"><i class="bi bi-bell"></i>@if (solicitacoesPendentes > 0) { <span class="notification-count">{{ solicitacoesPendentes }}</span> }</button>
-
-    <!-- <button class="icon-btn" aria-label="ConfiguraÃ§Ãµes">
-      <i class="bi bi-gear"></i>
-    </button> -->
+    @if (authService.isAdmin()) {
+      <button
+        type="button"
+        class="icon-btn"
+        aria-label="Solicitações de EPI"
+        (click)="abrirSolicitacoes()"
+      >
+        <i class="bi bi-bell" aria-hidden="true"></i>
+        @if (solicitacoesPendentes > 0) {
+          <span class="notification-count">{{ solicitacoesPendentes }}</span>
+        }
+      </button>
+    }
+    <details class="account" (keydown.escape)="fecharConta($event)">
+      <summary aria-label="Abrir opções da conta">
+        <i class="bi bi-person-circle account-avatar" aria-hidden="true"></i>
+        <span class="account-summary"
+          ><strong>{{ authService.getUsuarioLogado()?.nome || 'Usuário' }}</strong
+          ><small>{{ authService.isAdmin() ? 'Administrador' : 'Colaborador' }}</small></span
+        >
+        <i class="bi bi-chevron-down account-chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="account-menu">
+        <div class="account-info">
+          <strong>{{ authService.getUsuarioLogado()?.nome || 'Usuário' }}</strong
+          ><small>{{ authService.isAdmin() ? 'Administrador' : 'Colaborador' }}</small>
+        </div>
+        <a routerLink="/sistema/perfil" (click)="fecharConta($event)"
+          ><i class="bi bi-person" aria-hidden="true"></i> Meu perfil</a
+        >
+        <button type="button" (click)="logout()">
+          <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sair
+        </button>
+      </div>
+    </details>
   </div>
 </header>
-

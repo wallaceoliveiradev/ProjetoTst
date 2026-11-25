@@ -1,16 +1,24 @@
 <div class="conteudo-pagina">
   <header class="app-page-heading">
     <div class="app-page-heading__content">
-      <span class="app-page-heading__eyebrow"><i class="bi bi-shield-check"></i> SAÚDE E SEGURANÇA DO TRABALHO</span>
+      <span class="app-page-heading__eyebrow"
+        ><i class="bi bi-shield-check"></i> SAÚDE E SEGURANÇA DO TRABALHO</span
+      >
       <h1 class="app-page-heading__title">Usuários</h1>
-      <p class="app-page-heading__description">Gerencie os usuários e os níveis de acesso ao sistema.</p>
+      <p class="app-page-heading__description">
+        Gerencie os usuários e os níveis de acesso ao sistema.
+      </p>
     </div>
   </header>
 
-  <nav class="sub-nav" aria-label="Navegação de usuários">
+  <nav class="sub-nav" aria-label="Navegação de usuários" role="tablist">
     <button
       type="button"
       [class.active]="subNavAtiva === 'lista'"
+      role="tab"
+      [attr.aria-selected]="subNavAtiva === 'lista'"
+      id="usuarios-tab-lista"
+      aria-controls="usuarios-panel-lista"
       (click)="mostrarUsuarios()"
     >
       Usuários cadastrados
@@ -19,6 +27,10 @@
       *ngIf="authService.isAdmin()"
       type="button"
       [class.active]="subNavAtiva === 'cadastro'"
+      role="tab"
+      [attr.aria-selected]="subNavAtiva === 'cadastro'"
+      id="usuarios-tab-cadastro"
+      aria-controls="usuarios-panel-cadastro"
       (click)="abrirCadastro()"
     >
       Registrar novo usuário
@@ -27,32 +39,59 @@
       *ngIf="authService.isAdmin()"
       type="button"
       [class.active]="subNavAtiva === 'riscos'"
+      role="tab"
+      [attr.aria-selected]="subNavAtiva === 'riscos'"
+      id="usuarios-tab-riscos"
+      aria-controls="usuarios-panel-riscos"
       (click)="abrirGestaoRiscoUsuario()"
     >
       Gestão de risco do usuário
     </button>
   </nav>
 
-  <section *ngIf="subNavAtiva === 'cadastro' && authService.isAdmin()" class="registro-form">
+  <section
+    role="tabpanel"
+    id="usuarios-panel-cadastro"
+    aria-labelledby="usuarios-tab-cadastro"
+    *ngIf="subNavAtiva === 'cadastro' && authService.isAdmin()"
+    class="registro-form"
+  >
     <h3>Registrar novo usuário</h3>
     <form #formCadastro="ngForm" (ngSubmit)="cadastrarUsuario(formCadastro)">
       <div class="form-grid">
         <div class="form-group">
           <label for="novo-nome">Nome completo</label>
-          <input id="novo-nome" name="nome" [(ngModel)]="novoUsuario.nome"
-            placeholder="Digite o nome completo" required />
+          <input
+            id="novo-nome"
+            name="nome"
+            [(ngModel)]="novoUsuario.nome"
+            placeholder="Digite o nome completo"
+            required
+          />
         </div>
 
         <div class="form-group">
           <label for="novo-usuario">E-mail</label>
-          <input id="novo-usuario" type="email" name="email" [(ngModel)]="novoUsuario.email"
-            autocomplete="email" placeholder="Ex.: nome@empresa.com" required />
+          <input
+            id="novo-usuario"
+            type="email"
+            name="email"
+            [(ngModel)]="novoUsuario.email"
+            autocomplete="email"
+            placeholder="Ex.: nome@empresa.com"
+            required
+          />
         </div>
 
         <div class="form-group">
           <label for="novo-cargo">Cargo</label>
-          <input id="novo-cargo" name="cargo" [(ngModel)]="novoUsuario.cargo"
-            placeholder="Ex.: Técnico de segurança" required />
+          <input
+            id="novo-cargo"
+            name="cargo"
+            [(ngModel)]="novoUsuario.cargo"
+            placeholder="Ex.: Técnico de segurança"
+            required
+          />
         </div>
 
         <div class="form-group">
@@ -65,11 +104,17 @@
 
         <div class="form-group">
           <label for="nova-senha">Senha</label>
-          <input id="nova-senha" type="password" name="senha" [(ngModel)]="novoUsuario.senha"
-            autocomplete="new-password" placeholder="Digite uma senha com pelo menos 6 caracteres"
-            minlength="6" required />
+          <input
+            id="nova-senha"
+            type="password"
+            name="senha"
+            [(ngModel)]="novoUsuario.senha"
+            autocomplete="new-password"
+            placeholder="Digite uma senha com pelo menos 6 caracteres"
+            minlength="6"
+            required
+          />
         </div>
-
       </div>
 
       <div class="form-actions">
@@ -89,14 +134,26 @@
     <button type="button" (click)="buscarUsuario()">Buscar Usuário</button>
   </div>
 
-  <section *ngIf="subNavAtiva === 'riscos' && authService.isAdmin()" class="registro-form">
+  <section
+    role="tabpanel"
+    id="usuarios-panel-riscos"
+    aria-labelledby="usuarios-tab-riscos"
+    *ngIf="subNavAtiva === 'riscos' && authService.isAdmin()"
+    class="registro-form"
+  >
     <h3>Gestão de risco do usuário</h3>
     <div class="form-group user-risk-user-select">
       <label for="usuario-riscos">Usuário</label>
-      <select id="usuario-riscos" name="usuarioRiscos" [ngModel]="usuarioGestaoRisco"
-        (ngModelChange)="selecionarUsuarioParaRiscos($event)">
+      <select
+        id="usuario-riscos"
+        name="usuarioRiscos"
+        [ngModel]="usuarioGestaoRisco"
+        (ngModelChange)="selecionarUsuarioParaRiscos($event)"
+      >
         <option [ngValue]="null">Selecione um usuário</option>
-        <option *ngFor="let usuario of usuariosElegiveisParaRiscos" [ngValue]="usuario">{{ usuario.nome }} — {{ usuario.cargo }}</option>
+        <option *ngFor="let usuario of usuariosElegiveisParaRiscos" [ngValue]="usuario">
+          {{ usuario.nome }} — {{ usuario.cargo }}
+        </option>
       </select>
     </div>
 
@@ -115,28 +172,70 @@
         </div>
         <div class="form-group">
           <label for="validade-risco">Validade</label>
-          <input id="validade-risco" name="validadeRisco" type="date" [(ngModel)]="novaValidade" [min]="hoje" required />
+          <input
+            id="validade-risco"
+            name="validadeRisco"
+            type="date"
+            [(ngModel)]="novaValidade"
+            [min]="hoje"
+            required
+          />
         </div>
         <button type="button" (click)="adicionarRiscoAoUsuario()">Adicionar</button>
       </div>
 
       <p *ngIf="riscosCarregando" role="status">Carregando associações...</p>
-      <table class="riscos-table" *ngIf="!riscosCarregando">
-        <thead><tr><th>Setor</th><th>Risco</th><th>Nível</th><th>Situação</th><th>Validade</th><th>Ações</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let risco of riscosEmEdicao">
-            <td>{{ risco.setor }}</td><td>{{ risco.risco }}</td><td>{{ risco.nivel }}</td><td>{{ risco.situacao }}</td>
-            <td>{{ risco.validade | date:'dd/MM/yyyy' }}</td>
-            <td><button type="button" class="cancel-button" (click)="removerRiscoDoUsuario(risco.riscoId)">Remover</button></td>
-          </tr>
-          <tr *ngIf="riscosEmEdicao.length === 0"><td colspan="6">Nenhuma associação adicionada.</td></tr>
-        </tbody>
-      </table>
+      <div class="sst-table-scroll">
+        <table class="riscos-table" *ngIf="!riscosCarregando">
+          <thead>
+            <tr>
+              <th>Setor</th>
+              <th>Risco</th>
+              <th>Nível</th>
+              <th>Situação</th>
+              <th>Validade</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let risco of riscosEmEdicao">
+              <td>{{ risco.setor }}</td>
+              <td>{{ risco.risco }}</td>
+              <td>{{ risco.nivel }}</td>
+              <td>{{ risco.situacao }}</td>
+              <td>{{ risco.validade | date: 'dd/MM/yyyy' }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="cancel-button"
+                  (click)="removerRiscoDoUsuario(risco.riscoId)"
+                >
+                  Remover
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="riscosEmEdicao.length === 0">
+              <td colspan="6">Nenhuma associação adicionada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <div class="edit-actions">
-        <button type="button" [disabled]="salvandoRiscos || riscosCarregando" (click)="salvarAssociacoesRisco()">
+        <button
+          type="button"
+          [disabled]="salvandoRiscos || riscosCarregando"
+          (click)="salvarAssociacoesRisco()"
+        >
           {{ salvandoRiscos ? 'Salvando...' : 'Salvar Associações' }}
         </button>
-        <button type="button" class="cancel-button" [disabled]="salvandoRiscos" (click)="cancelarAssociacoesRisco()">Cancelar</button>
+        <button
+          type="button"
+          class="cancel-button"
+          [disabled]="salvandoRiscos"
+          (click)="cancelarAssociacoesRisco()"
+        >
+          Cancelar
+        </button>
       </div>
     </ng-container>
   </section>
@@ -145,115 +244,163 @@
     {{ mensagem }}
   </section>
 
-  <table *ngIf="subNavAtiva === 'lista'">
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Cargo</th>
-        <th>Perfil</th>
-        <th>Status</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
+  <div
+    class="sst-table-scroll"
+    role="tabpanel"
+    id="usuarios-panel-lista"
+    aria-labelledby="usuarios-tab-lista"
+    *ngIf="subNavAtiva === 'lista'"
+  >
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Cargo</th>
+          <th>Perfil</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
 
-    <tbody>
-      <tr *ngFor="let usuario of usuariosFiltrados">
-        <td>{{ usuario.nome }}</td>
-        <td>{{ usuario.cargo }}</td>
-        <td>{{ usuario.perfil }}</td>
-        <td>{{ usuario.ativo ? 'Ativo' : 'Inativo' }}</td>
-        <td>
-          <button
-            type="button"
-            (click)="visualizarUsuario(usuario)"
-          >
-            Ver
-          </button>
+      <tbody>
+        <tr *ngFor="let usuario of usuariosFiltrados">
+          <td>{{ usuario.nome }}</td>
+          <td>{{ usuario.cargo }}</td>
+          <td>
+            <span class="sst-badge">{{ usuario.perfil }}</span>
+          </td>
+          <td>
+            <span class="sst-badge" [class.sst-badge--success]="usuario.ativo">{{
+              usuario.ativo ? 'Ativo' : 'Inativo'
+            }}</span>
+          </td>
+          <td>
+            <button type="button" (click)="visualizarUsuario(usuario)">Ver</button>
 
-          <button
-            *ngIf="authService.isAdmin() || usuario.nome === authService.getUsuarioLogado()?.nome"
-            type="button"
-            (click)="editarUsuario(usuario)"
-          >
-            Editar
-          </button>
-        </td>
-      </tr>
-      <tr *ngIf="usuariosFiltrados.length === 0">
-        <td colspan="5">Nenhum usuário encontrado.</td>
-      </tr>
-    </tbody>
-  </table>
+            <button
+              *ngIf="authService.isAdmin() || usuario.nome === authService.getUsuarioLogado()?.nome"
+              type="button"
+              (click)="editarUsuario(usuario)"
+            >
+              Editar
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="usuariosFiltrados.length === 0">
+          <td colspan="5">Nenhum usuário encontrado.</td>
+        </tr>
+      </tbody>
+    </table>
 
-  <section *ngIf="usuarioVisualizado && !usuarioSelecionado" class="view-form">
-    <h3>Informações</h3>
-    <div class="detalhes-usuario">
-      <p><strong>Nome:</strong> {{ usuarioVisualizado.nome }}</p>
-      <p><strong>Cargo:</strong> {{ usuarioVisualizado.cargo }}</p>
-      <p><strong>Data de admissão:</strong> {{ usuarioVisualizado.dataCadastro ? (usuarioVisualizado.dataCadastro | date:'dd/MM/yyyy') : 'Não informado' }}</p>
-      <p><strong>Status do usuário:</strong> {{ usuarioVisualizado.ativo ? 'Ativo' : 'Inativo' }}</p>
+    <div
+      class="sst-modal-overlay"
+      *ngIf="usuarioVisualizado && !usuarioSelecionado"
+      (click)="usuarioVisualizado = null"
+    >
+      <section
+        class="view-form sst-dialog"
+        appDialog
+        (dialogClose)="usuarioVisualizado = null"
+        aria-label="Detalhes do usuário"
+        (click)="$event.stopPropagation()"
+      >
+        <h3>Informações</h3>
+        <div class="detalhes-usuario">
+          <p><strong>Nome:</strong> {{ usuarioVisualizado.nome }}</p>
+          <p><strong>Cargo:</strong> {{ usuarioVisualizado.cargo }}</p>
+          <p>
+            <strong>Data de admissão:</strong>
+            {{
+              usuarioVisualizado.dataCadastro
+                ? (usuarioVisualizado.dataCadastro | date: 'dd/MM/yyyy')
+                : 'Não informado'
+            }}
+          </p>
+          <p>
+            <strong>Status do usuário:</strong> {{ usuarioVisualizado.ativo ? 'Ativo' : 'Inativo' }}
+          </p>
+        </div>
+
+        <ng-container *ngIf="usuarioVisualizado.perfil !== 'admin'">
+          <h4>Riscos associados</h4>
+          <p *ngIf="riscosCarregando" role="status">Carregando associações...</p>
+          <p *ngIf="riscosMensagem" class="mensagem-alerta" role="status">{{ riscosMensagem }}</p>
+
+          <div class="sst-table-scroll">
+            <table class="riscos-table" *ngIf="!riscosCarregando">
+              <thead>
+                <tr>
+                  <th>Setor</th>
+                  <th>Risco</th>
+                  <th>Nível</th>
+                  <th>Situação</th>
+                  <th>Validade</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let risco of usuarioVisualizado.riscos">
+                  <td>{{ risco.setor }}</td>
+                  <td>{{ risco.risco }}</td>
+                  <td>{{ risco.nivel }}</td>
+                  <td>{{ risco.situacao }}</td>
+                  <td>{{ risco.validade | date: 'dd/MM/yyyy' }}</td>
+                  <td>
+                    <button
+                      *ngIf="authService.isAdmin()"
+                      type="button"
+                      (click)="abrirGestaoRiscoUsuario(usuarioVisualizado)"
+                    >
+                      Gerenciar</button
+                    ><span *ngIf="!authService.isAdmin()">—</span>
+                  </td>
+                </tr>
+                <tr *ngIf="usuarioVisualizado.riscos.length === 0">
+                  <td colspan="6">Nenhum risco associado a este usuário.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <button type="button" class="close-view" (click)="usuarioVisualizado = null">Fechar</button>
+      </section>
     </div>
 
-    <ng-container *ngIf="usuarioVisualizado.perfil !== 'admin'">
-      <h4>Riscos associados</h4>
-      <p *ngIf="riscosCarregando" role="status">Carregando associações...</p>
-      <p *ngIf="riscosMensagem" class="mensagem-alerta" role="status">{{ riscosMensagem }}</p>
+    <div class="sst-modal-overlay" *ngIf="usuarioSelecionado" (click)="cancelarEdicao()">
+      <section
+        class="edit-form sst-dialog"
+        appDialog
+        (dialogClose)="cancelarEdicao()"
+        aria-label="Editar usuário"
+        (click)="$event.stopPropagation()"
+      >
+        <h3>Editar usuário</h3>
+        <div class="form-group">
+          <label for="usuario-editar-nome">Nome</label>
+          <input type="text" id="usuario-editar-nome" [(ngModel)]="usuarioSelecionado.nome" />
+        </div>
+        <div class="form-group">
+          <label for="usuario-editar-cargo">Cargo</label>
+          <input type="text" id="usuario-editar-cargo" [(ngModel)]="usuarioSelecionado.cargo" />
+        </div>
+        <div class="form-group">
+          <label for="usuario-editar-perfil">Perfil</label>
+          <input type="text" id="usuario-editar-perfil" [(ngModel)]="usuarioSelecionado.perfil" />
+        </div>
+        <div class="form-group status-group">
+          <label for="usuario-editar-status">Status</label>
+          <select id="usuario-editar-status" [(ngModel)]="usuarioSelecionado.ativo">
+            <option [ngValue]="true">Ativo</option>
+            <option [ngValue]="false">Inativo</option>
+          </select>
+        </div>
 
-      <table class="riscos-table" *ngIf="!riscosCarregando">
-        <thead>
-          <tr>
-            <th>Setor</th>
-            <th>Risco</th>
-            <th>Nível</th>
-            <th>Situação</th>
-            <th>Validade</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let risco of usuarioVisualizado.riscos">
-            <td>{{ risco.setor }}</td>
-            <td>{{ risco.risco }}</td>
-            <td>{{ risco.nivel }}</td>
-            <td>{{ risco.situacao }}</td>
-            <td>{{ risco.validade | date:'dd/MM/yyyy' }}</td>
-            <td><button *ngIf="authService.isAdmin()" type="button" (click)="abrirGestaoRiscoUsuario(usuarioVisualizado)">Gerenciar</button><span *ngIf="!authService.isAdmin()">—</span></td>
-          </tr>
-          <tr *ngIf="usuarioVisualizado.riscos.length === 0">
-            <td colspan="6">Nenhum risco associado a este usuário.</td>
-          </tr>
-        </tbody>
-      </table>
-    </ng-container>
-
-    <button type="button" class="close-view" (click)="usuarioVisualizado = null">Fechar</button>
-  </section>
-
-  <section *ngIf="usuarioSelecionado" class="edit-form">
-    <h3>Editar usuário</h3>
-    <div class="form-group">
-      <label>Nome</label>
-      <input type="text" [(ngModel)]="usuarioSelecionado.nome" />
+        <div class="edit-actions">
+          <button type="button" (click)="salvarEdicao()">Salvar</button>
+          <button type="button" class="cancel-button" (click)="cancelarEdicao()">Cancelar</button>
+        </div>
+      </section>
     </div>
-    <div class="form-group">
-      <label>Cargo</label>
-      <input type="text" [(ngModel)]="usuarioSelecionado.cargo" />
-    </div>
-    <div class="form-group">
-      <label>Perfil</label>
-      <input type="text" [(ngModel)]="usuarioSelecionado.perfil" />
-    </div>
-    <div class="form-group status-group">
-      <label>Status</label>
-      <select [(ngModel)]="usuarioSelecionado.ativo">
-        <option [ngValue]="true">Ativo</option>
-        <option [ngValue]="false">Inativo</option>
-      </select>
-    </div>
-
-    <div class="edit-actions">
-      <button type="button" (click)="salvarEdicao()">Salvar</button>
-      <button type="button" class="cancel-button" (click)="cancelarEdicao()">Cancelar</button>
-    </div>
-  </section>
+  </div>
 </div>

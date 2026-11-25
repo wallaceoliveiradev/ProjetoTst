@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {
   NivelRiscoApi,
@@ -31,7 +33,7 @@ interface FormularioRisco {
 
 const nivelParaApi: Record<NivelRiscoUi, NivelRiscoApi> = {
   Alto: 'ALTO',
-  'Médio': 'MEDIO',
+  Médio: 'MEDIO',
   Baixo: 'BAIXO',
 };
 
@@ -59,6 +61,8 @@ const situacaoDaApi: Record<SituacaoRiscoApi, SituacaoRiscoUi> = {
   styleUrl: './riscos.scss',
 })
 export class Riscos implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   busca = '';
   nivelFiltro: 'Todos' | NivelRiscoUi = 'Todos';
   situacaoFiltro: 'Todos' | SituacaoRiscoUi = 'Todos';
@@ -66,9 +70,28 @@ export class Riscos implements OnInit {
   readonly niveis = ['Todos', 'Alto', 'Médio', 'Baixo'];
   readonly situacoes = ['Todos', 'Ativo', 'Inativo'];
 
-  riscos: Risco[] = [];
-  private todosRiscos: Risco[] = [];
-  carregando = true;
+  private readonly riscosCarregados = signal<Risco[]>([]);
+  private readonly catalogoRiscos = signal<Risco[]>([]);
+  private readonly consultaEmAndamento = signal(true);
+
+  get riscos(): Risco[] {
+    return this.riscosCarregados();
+  }
+  set riscos(valor: Risco[]) {
+    this.riscosCarregados.set(valor);
+  }
+  private get todosRiscos(): Risco[] {
+    return this.catalogoRiscos();
+  }
+  private set todosRiscos(valor: Risco[]) {
+    this.catalogoRiscos.set(valor);
+  }
+  get carregando(): boolean {
+    return this.consultaEmAndamento();
+  }
+  set carregando(valor: boolean) {
+    this.consultaEmAndamento.set(valor);
+  }
   salvando = false;
   mensagemErro = '';
   mensagemSucesso = '';
@@ -83,7 +106,12 @@ export class Riscos implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.carregarTodos();
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const altoAtivo = params.get('nivel') === 'ALTO' && params.get('situacao') === 'ATIVO';
+      this.nivelFiltro = altoAtivo ? 'Alto' : 'Todos';
+      this.situacaoFiltro = altoAtivo ? 'Ativo' : 'Todos';
+      this.carregarTodos();
+    });
   }
 
   get totalRiscos(): number {
@@ -143,9 +171,10 @@ export class Riscos implements OnInit {
       situacao: situacaoParaApi[this.formulario.situacao],
       icone: null,
     };
-    const requisicao = this.editandoId === null
-      ? this.riscoApi.criar(dados)
-      : this.riscoApi.atualizar(this.editandoId, dados);
+    const requisicao =
+      this.editandoId === null
+        ? this.riscoApi.criar(dados)
+        : this.riscoApi.atualizar(this.editandoId, dados);
 
     requisicao.subscribe({
       next: (resposta) => {
@@ -188,7 +217,10 @@ export class Riscos implements OnInit {
         this.changeDetector.markForCheck();
       },
       error: (erro: HttpErrorResponse) => {
-        this.mensagemErro = this.mensagemDaApi(erro, 'Não foi possível alterar a situação do risco');
+        this.mensagemErro = this.mensagemDaApi(
+          erro,
+          'Não foi possível alterar a situação do risco',
+        );
         this.changeDetector.markForCheck();
       },
     });
@@ -197,24 +229,25 @@ export class Riscos implements OnInit {
   filtrar(): void {
     this.limparMensagens();
     this.carregando = true;
-    this.riscoApi.listar({
-      busca: this.busca.trim() || undefined,
-      nivel: this.nivelFiltro === 'Todos' ? undefined : nivelParaApi[this.nivelFiltro],
-      situacao: this.situacaoFiltro === 'Todos'
-        ? undefined
-        : situacaoParaApi[this.situacaoFiltro],
-    }).subscribe({
-      next: (riscos) => {
-        this.riscos = riscos.map((risco) => this.adaptar(risco));
-        this.carregando = false;
-        this.changeDetector.markForCheck();
-      },
-      error: (erro: HttpErrorResponse) => {
-        this.mensagemErro = this.mensagemDaApi(erro, 'Não foi possível carregar os riscos');
-        this.carregando = false;
-        this.changeDetector.markForCheck();
-      },
-    });
+    this.riscoApi
+      .listar({
+        busca: this.busca.trim() || undefined,
+        nivel: this.nivelFiltro === 'Todos' ? undefined : nivelParaApi[this.nivelFiltro],
+        situacao:
+          this.situacaoFiltro === 'Todos' ? undefined : situacaoParaApi[this.situacaoFiltro],
+      })
+      .subscribe({
+        next: (riscos) => {
+          this.riscos = riscos.map((risco) => this.adaptar(risco));
+          this.carregando = false;
+          this.changeDetector.markForCheck();
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.mensagemErro = this.mensagemDaApi(erro, 'Não foi possível carregar os riscos');
+          this.carregando = false;
+          this.changeDetector.markForCheck();
+        },
+      });
   }
 
   limpar(): void {
@@ -229,9 +262,13 @@ export class Riscos implements OnInit {
     this.riscoApi.listar().subscribe({
       next: (riscos) => {
         this.todosRiscos = riscos.map((risco) => this.adaptar(risco));
-        this.riscos = [...this.todosRiscos];
-        this.carregando = false;
-        this.changeDetector.markForCheck();
+        if (this.nivelFiltro !== 'Todos' || this.situacaoFiltro !== 'Todos') {
+          this.filtrar();
+        } else {
+          this.riscos = [...this.todosRiscos];
+          this.carregando = false;
+          this.changeDetector.markForCheck();
+        }
       },
       error: (erro: HttpErrorResponse) => {
         this.mensagemErro = this.mensagemDaApi(erro, 'Não foi possível carregar os riscos');
@@ -255,7 +292,7 @@ export class Riscos implements OnInit {
   iconePorNivel(nivel: NivelRiscoUi): string {
     const icones: Record<NivelRiscoUi, string> = {
       Alto: 'bi-shield-exclamation',
-      'Médio': 'bi-exclamation-triangle',
+      Médio: 'bi-exclamation-triangle',
       Baixo: 'bi-shield-check',
     };
     return icones[nivel];
@@ -267,7 +304,7 @@ export class Riscos implements OnInit {
       this.todosRiscos = [...this.todosRiscos, risco];
       return;
     }
-    this.todosRiscos = this.todosRiscos.map((item) => item.id === risco.id ? risco : item);
+    this.todosRiscos = this.todosRiscos.map((item) => (item.id === risco.id ? risco : item));
   }
 
   private novoFormulario(): FormularioRisco {

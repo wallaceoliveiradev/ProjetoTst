@@ -3,16 +3,16 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { Dialog } from '../../shared/dialog/dialog';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, Dialog],
   templateUrl: './login.html',
-  styleUrl: './login.scss'
+  styleUrl: './login.scss',
 })
 export class Login {
-
   usuario = '';
   senha = '';
   autenticando = false;
@@ -23,7 +23,7 @@ export class Login {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
   ) {}
 
   fazerLogin(): void {
@@ -49,21 +49,24 @@ export class Login {
     if (erro.status === 0) {
       return {
         titulo: 'API indisponível',
-        texto: 'Não foi possível conectar a http://localhost:8080. Confirme que o backend está iniciado e que a origem do frontend está liberada no CORS.',
+        texto:
+          'Não foi possível conectar a http://localhost:8080. Confirme que o backend está iniciado e que a origem do frontend está liberada no CORS.',
       };
     }
 
     if (erro.status === 400) {
       return {
         titulo: 'Dados inválidos',
-        texto: 'O backend exige um e-mail válido e uma senha preenchida. Confira os dados e tente novamente.',
+        texto:
+          'O backend exige um e-mail válido e uma senha preenchida. Confira os dados e tente novamente.',
       };
     }
 
     if (erro.status === 401) {
       return {
         titulo: 'Credenciais recusadas',
-        texto: 'O backend não autenticou essa conta. Confirme se o e-mail e a senha pertencem ao mesmo banco usado pela API e se o usuário está ATIVO.',
+        texto:
+          'O backend não autenticou essa conta. Confirme se o e-mail e a senha pertencem ao mesmo banco usado pela API e se o usuário está ATIVO.',
       };
     }
 
@@ -80,30 +83,22 @@ export class Login {
     );
   }
 
-  mostrarMensagemFlutuante(
-    titulo: string,
-    mensagem: string
-  ): void {
-
-    this.mensagemFlutuante =
-      `${titulo}|${mensagem}`;
+  mostrarMensagemFlutuante(titulo: string, mensagem: string): void {
+    this.mensagemFlutuante = `${titulo}|${mensagem}`;
 
     this.mostrarMensagem = true;
   }
 
   fecharMensagem(): void {
-
     this.mostrarMensagem = false;
     this.mensagemFlutuante = '';
   }
 
   getTituloMensagem(): string {
-
     return this.mensagemFlutuante.split('|')[0] || '';
   }
 
   getTextoMensagem(): string {
-
     return this.mensagemFlutuante.split('|')[1] || '';
   }
 }

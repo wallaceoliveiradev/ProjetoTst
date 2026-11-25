@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
@@ -24,13 +26,21 @@ type AbaTreinamentos = 'cadastrados' | 'novo' | 'certificados' | 'reciclagens' |
   styleUrl: './treinamentos.scss',
 })
 export class Treinamentos implements OnDestroy, OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   constructor(
     public authService: AuthService,
     private treinamentoService: TreinamentoService,
     private usuarioApiService: UsuarioApiService,
   ) {}
 
-  abaAtiva: AbaTreinamentos = 'cadastrados';
+  private readonly abaSelecionada = signal<AbaTreinamentos>('cadastrados');
+  get abaAtiva(): AbaTreinamentos {
+    return this.abaSelecionada();
+  }
+  set abaAtiva(valor: AbaTreinamentos) {
+    this.abaSelecionada.set(valor);
+  }
   salvando = false;
   treinamentoEditando: Treinamento | null = null;
   mensagemErro: string | null = null;
@@ -60,7 +70,7 @@ export class Treinamentos implements OnDestroy, OnInit {
 
   get registrosEmReciclagem(): HistoricoTreinamento[] {
     return this.historico().filter(
-      registro =>
+      (registro) =>
         registro.status === 'ALERTA' ||
         registro.status === 'VENCIDO' ||
         registro.status === 'INVALIDADO',
@@ -75,6 +85,10 @@ export class Treinamentos implements OnDestroy, OnInit {
       this.carregarColaboradores();
     }
     this.atualizacaoHistorico = interval(5 * 60 * 1000).subscribe(() => this.carregarHistorico());
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const aba = params.get('aba');
+      if (aba === 'certificados' || aba === 'reciclagens') this.selecionarAba(aba);
+    });
   }
 
   ngOnDestroy(): void {
@@ -260,7 +274,8 @@ export class Treinamentos implements OnDestroy, OnInit {
         }
         formulario.resetForm(this.conclusao);
         this.carregarHistorico();
-        this.mensagemSucesso = 'Conclusão registrada. O vencimento foi calculado e o ciclo anterior preservado.';
+        this.mensagemSucesso =
+          'Conclusão registrada. O vencimento foi calculado e o ciclo anterior preservado.';
       },
       error: (erro: HttpErrorResponse) => this.finalizarErro(erro, 'registrar a conclusão'),
     });
@@ -271,11 +286,13 @@ export class Treinamentos implements OnDestroy, OnInit {
       treinamentoId: registro.treinamentoId,
       usuarioId: registro.usuarioId,
       dataConclusao: this.dataLocal(),
-      cargaHoraria: this.treinamentos().find((item) => item.id === registro.treinamentoId)?.cargaHoraria
-        ?? registro.cargaHoraria,
+      cargaHoraria:
+        this.treinamentos().find((item) => item.id === registro.treinamentoId)?.cargaHoraria ??
+        registro.cargaHoraria,
       instrutor: '',
-      conteudoProgramatico: this.treinamentos().find((item) => item.id === registro.treinamentoId)?.descricao
-        ?? registro.conteudoProgramatico,
+      conteudoProgramatico:
+        this.treinamentos().find((item) => item.id === registro.treinamentoId)?.descricao ??
+        registro.conteudoProgramatico,
     };
     this.arquivoCertificado = null;
     this.selecionarAba('certificados');
@@ -311,7 +328,8 @@ export class Treinamentos implements OnDestroy, OnInit {
         if (registroInvalidado) {
           this.iniciarRenovacao(registroInvalidado);
         }
-        this.mensagemSucesso = 'Certificado invalidado. Registre a nova conclusão para reiniciar o ciclo.';
+        this.mensagemSucesso =
+          'Certificado invalidado. Registre a nova conclusão para reiniciar o ciclo.';
       },
       error: (erro: HttpErrorResponse) => this.finalizarErro(erro, 'invalidar o certificado'),
     });
@@ -376,32 +394,34 @@ export class Treinamentos implements OnDestroy, OnInit {
     }
     this.salvando = true;
     this.limparMensagens();
-    this.treinamentoService.salvarParametro(
-      this.parametroForm.treinamentoId,
-      {
-        cargo: this.parametroForm.cargo.trim() || null,
-        validadeMeses: Number(this.parametroForm.validadeMeses),
-        diasAntecedenciaAlerta: Number(this.parametroForm.diasAntecedenciaAlerta),
-      },
-      this.parametroEditandoId ?? undefined,
-    ).subscribe({
-      next: (parametro) => {
-        this.parametros.update((lista) => [
-          ...lista.filter((item) => item.id !== parametro.id),
-          parametro,
-        ]);
-        this.parametroEditandoId = parametro.id;
-        this.parametroForm = {
-          treinamentoId: parametro.treinamentoId,
-          cargo: parametro.cargo ?? '',
-          validadeMeses: parametro.validadeMeses,
-          diasAntecedenciaAlerta: parametro.diasAntecedenciaAlerta,
-        };
-        this.mensagemSucesso = 'Regra de validade salva.';
-        this.salvando = false;
-      },
-      error: (erro: HttpErrorResponse) => this.finalizarErro(erro, 'salvar a regra de validade'),
-    });
+    this.treinamentoService
+      .salvarParametro(
+        this.parametroForm.treinamentoId,
+        {
+          cargo: this.parametroForm.cargo.trim() || null,
+          validadeMeses: Number(this.parametroForm.validadeMeses),
+          diasAntecedenciaAlerta: Number(this.parametroForm.diasAntecedenciaAlerta),
+        },
+        this.parametroEditandoId ?? undefined,
+      )
+      .subscribe({
+        next: (parametro) => {
+          this.parametros.update((lista) => [
+            ...lista.filter((item) => item.id !== parametro.id),
+            parametro,
+          ]);
+          this.parametroEditandoId = parametro.id;
+          this.parametroForm = {
+            treinamentoId: parametro.treinamentoId,
+            cargo: parametro.cargo ?? '',
+            validadeMeses: parametro.validadeMeses,
+            diasAntecedenciaAlerta: parametro.diasAntecedenciaAlerta,
+          };
+          this.mensagemSucesso = 'Regra de validade salva.';
+          this.salvando = false;
+        },
+        error: (erro: HttpErrorResponse) => this.finalizarErro(erro, 'salvar a regra de validade'),
+      });
   }
 
   excluirParametro(parametro: ParametroTreinamento): void {
@@ -417,22 +437,18 @@ export class Treinamentos implements OnDestroy, OnInit {
 
     this.salvando = true;
     this.limparMensagens();
-    this.treinamentoService
-      .excluirParametro(parametro.treinamentoId, parametro.id)
-      .subscribe({
-        next: () => {
-          this.parametros.update((lista) =>
-            lista.filter((item) => item.id !== parametro.id),
-          );
-          if (this.parametroEditandoId === parametro.id) {
-            this.parametroEditandoId = null;
-          }
-          this.salvando = false;
-          this.mensagemSucesso =
-            'Regra excluída. Certificados já registrados mantêm a validade aplicada.';
-        },
-        error: (erro: HttpErrorResponse) => this.finalizarErro(erro, 'excluir a regra de validade'),
-      });
+    this.treinamentoService.excluirParametro(parametro.treinamentoId, parametro.id).subscribe({
+      next: () => {
+        this.parametros.update((lista) => lista.filter((item) => item.id !== parametro.id));
+        if (this.parametroEditandoId === parametro.id) {
+          this.parametroEditandoId = null;
+        }
+        this.salvando = false;
+        this.mensagemSucesso =
+          'Regra excluída. Certificados já registrados mantêm a validade aplicada.';
+      },
+      error: (erro: HttpErrorResponse) => this.finalizarErro(erro, 'excluir a regra de validade'),
+    });
   }
 
   statusLabel(status: StatusHistoricoTreinamento): string {
@@ -464,7 +480,8 @@ export class Treinamentos implements OnDestroy, OnInit {
   private carregarHistorico(): void {
     this.treinamentoService.listarHistorico().subscribe({
       next: (dados) => this.historico.set(dados),
-      error: (erro: HttpErrorResponse) => this.definirErro(erro, 'carregar certificados e validades'),
+      error: (erro: HttpErrorResponse) =>
+        this.definirErro(erro, 'carregar certificados e validades'),
     });
   }
 
@@ -544,8 +561,10 @@ export class Treinamentos implements OnDestroy, OnInit {
     } else if (erro.status === 0) {
       this.mensagemErro = 'Não foi possível conectar à API de treinamentos.';
     } else if (erro.status === 400) {
-      this.mensagemErro = erro.error?.detail ?? erro.error?.message
-        ?? `A API rejeitou os dados ao ${acao}. Confira os campos e o arquivo anexado.`;
+      this.mensagemErro =
+        erro.error?.detail ??
+        erro.error?.message ??
+        `A API rejeitou os dados ao ${acao}. Confira os campos e o arquivo anexado.`;
     } else {
       this.mensagemErro = `Não foi possível ${acao} (HTTP ${erro.status}).`;
     }

@@ -1,155 +1,192 @@
 @if (authService.isAdmin()) {
-  <header class="app-page-heading dashboard-header">
+  <header class="app-page-heading">
     <div class="app-page-heading__content">
-      <span class="app-page-heading__eyebrow"><i class="bi bi-shield-check"></i> SAÚDE E SEGURANÇA DO TRABALHO</span>
+      <span class="app-page-heading__eyebrow"
+        ><i class="bi bi-shield-check" aria-hidden="true"></i> CRISÂNTEMOS / SST</span
+      >
       <h1 class="app-page-heading__title">Dashboard</h1>
-      <p class="app-page-heading__description">Indicadores gerenciais atuais de treinamento, EPIs e riscos.</p>
+      <p class="app-page-heading__description">
+        Acompanhe treinamentos, EPIs e riscos da operação.
+      </p>
+    </div>
+    <div class="app-page-heading__actions">
+      @if (dados(); as d) {
+        <span class="dashboard-date"
+          ><i class="bi bi-calendar3" aria-hidden="true"></i> Referência:
+          {{ formatarData(d.dataReferencia) }}</span
+        >
+      }
+      <button class="sst-button" type="button" (click)="carregar()" [disabled]="carregando()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+        {{ carregando() ? 'Atualizando...' : 'Atualizar' }}
+      </button>
     </div>
   </header>
 
-  @if (carregando()) {
-    <p class="dashboard-feedback" role="status">Carregando indicadores...</p>
-  }
-
-  @if (erro()) {
-    <div class="dashboard-feedback dashboard-feedback--error" role="alert">
-      <span>{{ erro() }}</span>
-      <button type="button" (click)="carregar()">Tentar novamente</button>
-    </div>
-  }
-
-  @if (dados(); as d) {
-    <p class="dashboard-date">Dados atualizados em {{ formatarData(d.dataReferencia) }}</p>
-
-    <div class="overview-cards">
-      <article class="overview-card" [class.search-highlight]="isCardActive('treinamentos-vencidos')">
-        <span>Treinamentos Vencidos</span>
-        <strong>{{ d.treinamentosVencidos }}</strong>
-      </article>
-      <article class="overview-card" [class.search-highlight]="isCardActive('epis-proximos')">
-        <span>Unidades de EPIs Próximas do Vencimento</span>
-        <strong>{{ d.episProximosVencimento }}</strong>
-      </article>
-      <article class="overview-card" [class.search-highlight]="isCardActive('funcionarios')">
-        <span>Colaboradores com Certificado Válido</span>
-        <strong>{{ d.colaboradoresCertificados }}</strong>
-      </article>
-      <article class="overview-card" [class.search-highlight]="isCardActive('riscos')">
-        <span>Riscos Altos Ativos</span>
-        <strong>{{ d.riscosAltosAtivos }}</strong>
-      </article>
-    </div>
-
-    <section class="objectives-grid">
-      <article class="objective-card">
-        <div class="objective-header">
-          <div>
-            <small>Treinamento</small>
-            <h3>Treinamentos Vencidos</h3>
-          </div>
-          <span class="objective-pill">Alerta</span>
+  <div [attr.aria-busy]="carregando()">
+    @if (carregando()) {
+      <p class="sst-feedback" role="status">Carregando indicadores...</p>
+    }
+    @if (erro()) {
+      <div class="sst-feedback sst-feedback--error dashboard-error" role="alert">
+        <p><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ erro() }}</p>
+        <button class="sst-button sst-button--secondary" type="button" (click)="carregar()">
+          Tentar novamente
+        </button>
+      </div>
+    }
+    @if (dados(); as d) {
+      <section class="operation-banner" aria-labelledby="operacao-titulo">
+        <div>
+          <span class="banner-label">OPERAÇÃO CRISÂNTEMOS</span>
+          <h2 id="operacao-titulo">Um turno mais seguro começa com informação clara.</h2>
+          <p>Saúde e Segurança do Trabalho no transporte coletivo.</p>
+          <p class="banner-status">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+            {{
+              d.riscosAltosAtivos === 0
+                ? 'Nenhum risco alto ativo encontrado.'
+                : d.riscosAltosAtivos + ' risco(s) alto(s) ativo(s) para acompanhar.'
+            }}
+          </p>
         </div>
-        <div class="kr-list">
-          <div class="kr-item">
-            <div class="kr-title">
-              <span>Percentual de ciclos atuais vencidos</span>
-              <strong>{{ d.percentualTreinamentosVencidos }}%</strong>
-            </div>
-            <div class="progress-bar"><div [style.width.%]="d.percentualTreinamentosVencidos"></div></div>
-          </div>
-        </div>
-        <div class="objective-footer">
-          <div class="donut-chart" [style.--percent]="d.percentualTreinamentosVencidos">
-            <strong>{{ d.percentualTreinamentosVencidos }}%</strong>
-          </div>
-          <p>Dos ciclos atuais de colaboradores ativos estão vencidos.</p>
-        </div>
-      </article>
-
-      <article class="objective-card secondary">
-        <div class="objective-header">
-          <div>
-            <small>EPIs</small>
-            <h3>Unidades Próximas do Vencimento</h3>
-          </div>
-          <span class="objective-pill">Alerta</span>
-        </div>
-        <div class="kr-list">
-          <div class="kr-item">
-            <div class="kr-title">
-              <span>Unidades em estoque vencendo em até {{ d.diasAlertaEpi }} dias</span>
-              <strong>{{ d.percentualEpisProximosVencimento }}%</strong>
-            </div>
-            <div class="progress-bar"><div [style.width.%]="d.percentualEpisProximosVencimento"></div></div>
-          </div>
-        </div>
-        <div class="objective-footer">
-          <div class="donut-chart" [style.--percent]="d.percentualEpisProximosVencimento">
-            <strong>{{ d.percentualEpisProximosVencimento }}%</strong>
-          </div>
-          <p>Do saldo total está próximo do vencimento.</p>
-        </div>
-      </article>
-
-      <article class="objective-card">
-        <div class="objective-header">
-          <div>
-            <small>Treinamentos</small>
-            <h3>Colaboradores Certificados</h3>
-          </div>
-          <span class="objective-pill">Atual</span>
-        </div>
-        <div class="kr-list">
-          <div class="kr-item">
-            <div class="kr-title">
-              <span>Com ao menos um certificado válido</span>
-              <strong>{{ d.percentualColaboradoresCertificados }}%</strong>
-            </div>
-            <div class="progress-bar"><div [style.width.%]="d.percentualColaboradoresCertificados"></div></div>
-          </div>
-        </div>
-        <div class="objective-footer">
-          <div class="donut-chart" [style.--percent]="d.percentualColaboradoresCertificados">
-            <strong>{{ d.percentualColaboradoresCertificados }}%</strong>
-          </div>
-          <p>Dos colaboradores ativos têm ao menos um certificado válido.</p>
-        </div>
-      </article>
-
-      <article class="objective-card secondary">
-        <div class="objective-header">
-          <div>
-            <small>Riscos</small>
-            <h3>Riscos Altos Ativos</h3>
-          </div>
-          <span class="objective-pill">Atenção</span>
-        </div>
-        <div class="kr-list">
-          <div class="kr-item">
-            <div class="kr-title">
-              <span>Dos riscos atualmente ativos</span>
-              <strong>{{ d.percentualRiscosAltosAtivos }}%</strong>
-            </div>
-            <div class="progress-bar"><div [style.width.%]="d.percentualRiscosAltosAtivos"></div></div>
-          </div>
-        </div>
-        <div class="objective-footer">
-          <div class="donut-chart" [style.--percent]="d.percentualRiscosAltosAtivos">
-            <strong>{{ d.percentualRiscosAltosAtivos }}%</strong>
-          </div>
-          <p>Dos riscos atualmente ativos são classificados como altos.</p>
-        </div>
-      </article>
-    </section>
-  } @else if (!carregando() && !erro()) {
-    <p class="dashboard-feedback" role="status">Nenhum indicador disponível.</p>
-  }
+        <i class="bi bi-bus-front banner-icon" aria-hidden="true"></i>
+      </section>
+      <section class="metrics" aria-label="Indicadores de segurança">
+        <app-indicador-card
+          titulo="Treinamentos vencidos"
+          [class.search-highlight]="isCardActive('treinamentos-vencidos')"
+          [valor]="d.treinamentosVencidos"
+          icone="bi-journal-bookmark"
+          destino="/sistema/treinamentos"
+          [parametros]="{ aba: 'reciclagens' }"
+          [descricao]="
+            d.percentualTreinamentosVencidos +
+            '% dos ciclos atuais. A fila inclui alertas e invalidações.'
+          "
+          acao="Consultar reciclagens"
+        />
+        <app-indicador-card
+          [titulo]="'Unidades em estoque vencendo em até ' + d.diasAlertaEpi + ' dias'"
+          [class.search-highlight]="isCardActive('epis-proximos')"
+          [valor]="d.episProximosVencimento"
+          icone="bi-shield-check"
+          destino="/sistema/epis-admin"
+          [parametros]="{ aba: 'cadastro' }"
+          [descricao]="
+            d.percentualEpisProximosVencimento +
+            '% do saldo em estoque. Consulte as remessas por EPI.'
+          "
+          acao="Consultar estoque"
+        />
+        <app-indicador-card
+          titulo="Colaboradores com certificado válido"
+          [class.search-highlight]="isCardActive('funcionarios')"
+          [valor]="d.colaboradoresCertificados"
+          icone="bi-people"
+          destino="/sistema/treinamentos"
+          [parametros]="{ aba: 'certificados' }"
+          [descricao]="
+            d.percentualColaboradoresCertificados +
+            '% dos colaboradores ativos. Uma pessoa pode ter vários certificados.'
+          "
+          acao="Consultar histórico de certificados"
+        />
+        <app-indicador-card
+          titulo="Riscos altos ativos"
+          [class.search-highlight]="isCardActive('riscos')"
+          [valor]="d.riscosAltosAtivos"
+          icone="bi-exclamation-triangle"
+          destino="/sistema/riscos"
+          [parametros]="{ nivel: 'ALTO', situacao: 'ATIVO' }"
+          [descricao]="
+            d.percentualRiscosAltosAtivos +
+            '% dos riscos ativos. Acompanhe as situações de maior atenção.'
+          "
+          acao="Ver riscos altos ativos"
+        />
+      </section>
+      <div class="dashboard-panels">
+        <section class="sst-panel" aria-labelledby="fila-titulo">
+          <h2 id="fila-titulo">Fila de atenção</h2>
+          <p class="panel-description">Frentes para acompanhar na rotina de segurança.</p>
+          <a
+            class="attention-row"
+            routerLink="/sistema/riscos"
+            [queryParams]="{ nivel: 'ALTO', situacao: 'ATIVO' }"
+          >
+            <span
+              ><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Riscos altos
+              ativos</span
+            >
+            <strong class="sst-badge" [class.sst-badge--danger]="d.riscosAltosAtivos > 0"
+              >{{ d.riscosAltosAtivos }} ativos ·
+              {{ d.riscosAltosAtivos > 0 ? 'Atenção' : 'Nenhum encontrado' }}</strong
+            >
+          </a>
+          <a
+            class="attention-row"
+            routerLink="/sistema/treinamentos"
+            [queryParams]="{ aba: 'reciclagens' }"
+          >
+            <span
+              ><i class="bi bi-journal-bookmark" aria-hidden="true"></i> Treinamentos vencidos</span
+            >
+            <strong class="sst-badge" [class.sst-badge--danger]="d.treinamentosVencidos > 0"
+              >{{ d.treinamentosVencidos }} ciclos ·
+              {{ d.treinamentosVencidos > 0 ? 'Vencidos' : 'Nenhum vencido' }}</strong
+            >
+          </a>
+          <a
+            class="attention-row"
+            routerLink="/sistema/epis-admin"
+            [queryParams]="{ aba: 'cadastro' }"
+          >
+            <span
+              ><i class="bi bi-shield-check" aria-hidden="true"></i> EPIs próximos do vencimento em
+              estoque</span
+            >
+            <strong class="sst-badge" [class.sst-badge--warning]="d.episProximosVencimento > 0"
+              >{{ d.episProximosVencimento }} unidades ·
+              {{ d.episProximosVencimento > 0 ? 'Atenção' : 'Nenhuma no período' }}</strong
+            >
+          </a>
+        </section>
+        <section class="sst-panel" aria-labelledby="acesso-titulo">
+          <h2 id="acesso-titulo">Acesso rápido</h2>
+          <p class="panel-description">Organize as próximas ações da operação.</p>
+          <a class="quick-link" routerLink="/sistema/checklist" [queryParams]="{ tela: 'selecao' }"
+            ><span><i class="bi bi-clipboard-check" aria-hidden="true"></i> Novo checklist</span
+            ><i class="bi bi-arrow-up-right" aria-hidden="true"></i
+          ></a>
+          <a class="quick-link" routerLink="/sistema/relatorios"
+            ><span><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Relatórios</span
+            ><i class="bi bi-arrow-up-right" aria-hidden="true"></i
+          ></a>
+          <p class="panel-note">Transporte coletivo · Saúde e Segurança do Trabalho</p>
+        </section>
+      </div>
+      <nav class="quick-grid" aria-label="Atalhos da rotina">
+        <a routerLink="/sistema/checklist" [queryParams]="{ tela: 'selecao' }"
+          ><i class="bi bi-clipboard-check" aria-hidden="true"></i> Iniciar checklist
+          <i class="bi bi-arrow-right" aria-hidden="true"></i
+        ></a>
+        <a routerLink="/sistema/epis-admin"
+          ><i class="bi bi-shield-check" aria-hidden="true"></i> Consultar EPIs
+          <i class="bi bi-arrow-right" aria-hidden="true"></i
+        ></a>
+        <a routerLink="/sistema/relatorios"
+          ><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Ver relatórios
+          <i class="bi bi-arrow-right" aria-hidden="true"></i
+        ></a>
+      </nav>
+      <p class="dashboard-updated">
+        Consulta gerada em {{ formatarEmissao(d.geradoEm) }} · Horário de São Paulo
+      </p>
+    } @else if (!carregando() && !erro()) {
+      <p class="sst-feedback" role="status">Nenhum indicador disponível.</p>
+    }
+  </div>
 } @else {
-  <header class="app-page-heading dashboard-header">
-    <div class="app-page-heading__content">
-      <span class="app-page-heading__eyebrow"><i class="bi bi-shield-check"></i> SAÚDE E SEGURANÇA DO TRABALHO</span>
-      <h1 class="app-page-heading__title">Bem-vindo</h1>
-      <p class="app-page-heading__description">A área de indicadores gerenciais está disponível para administradores.</p>
-    </div>
-  </header>
+  <p class="sst-feedback">Indicadores gerenciais disponíveis para administradores.</p>
 }

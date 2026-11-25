@@ -1,0 +1,28 @@
+:root {
+  --sst-yellow: #f4bf1d;
+  --sst-yellow-soft: #fff2c7;
+  --sst-yellow-deep: #b58a0d;
+  --sst-sidebar: #15211c;
+  --sst-bg: #f5f3ea;
+  --sst-surface: #ffffff;
+  --sst-text: #18251e;
+  --sst-muted: #58665d;
+  --sst-border: #e5e7df;
+  --sst-success: #17633f;
+  --sst-success-soft: #e8f3e9;
+  --sst-warning: #805000;
+  --sst-danger: #a92d21;
+  --sst-danger-soft: #fdeeea;
+  --sst-radius: 12px;
+  --sst-font: 'Segoe UI', Roboto, Arial, sans-serif;
+  --gold: var(--sst-yellow);
+  --gold-deep: var(--sst-yellow-deep);
+  --charcoal: var(--sst-sidebar);
+  --charcoal-soft: #253b30;
+  --cream: var(--sst-bg);
+  --cream-strong: var(--sst-border);
+  --text: var(--sst-text);
+  --muted: var(--sst-muted);
+  --white: var(--sst-surface);
+  --danger: var(--sst-danger);
+}

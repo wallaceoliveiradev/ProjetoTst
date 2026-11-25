@@ -8,10 +8,9 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './perfil.html',
-  styleUrl: './perfil.scss'
+  styleUrl: './perfil.scss',
 })
 export class Perfil {
-
   usuario: any = null;
   editando = false;
 
@@ -33,15 +32,11 @@ export class Perfil {
   }
 
   salvarPerfil(): void {
-
     if (!this.usuario) {
       return;
     }
 
-    localStorage.setItem(
-      'usuarioLogado',
-      JSON.stringify(this.usuario)
-    );
+    this.authService.atualizarNomeLocal(this.usuario.nome);
 
     this.editando = false;
 

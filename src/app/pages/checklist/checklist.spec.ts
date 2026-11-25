@@ -1,3 +1,6 @@
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
+import { provideRouter } from '@angular/router';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
@@ -6,14 +9,18 @@ import { AuthService } from '../../services/auth.service';
 import { Checklist } from './checklist';
 
 describe('Checklist', () => {
+  const parametrosDaRota = new BehaviorSubject(convertToParamMap({}));
   let component: Checklist;
   let fixture: ComponentFixture<Checklist>;
   let http: HttpTestingController;
 
   beforeEach(async () => {
+    parametrosDaRota.next(convertToParamMap({}));
     await TestBed.configureTestingModule({
       imports: [Checklist],
       providers: [
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { queryParamMap: parametrosDaRota } },
         provideHttpClient(),
         provideHttpClientTesting(),
         {
@@ -33,6 +40,13 @@ describe('Checklist', () => {
 
   afterEach(() => http.verify());
 
+  it('abre a seleção de cinco tipos sem iniciar uma inspeção pela URL', () => {
+    parametrosDaRota.next(convertToParamMap({ tela: 'selecao' }));
+    expect(component.tela).toBe('selecao');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.inspection-type-card')).toHaveLength(5);
+    http.expectNone((request) => request.method === 'POST');
+  });
   it('should create', () => {
     expect(component).toBeTruthy();
   });
@@ -117,15 +131,17 @@ describe('Checklist', () => {
       naoConformes: 0,
       pendentes: 0,
       conformidade: 100,
-      respostas: [{
-        itemId: 'pneus',
-        descricao: 'Pneus em condições adequadas',
-        status: 'conforme',
-        observacao: '',
-        prioridade: 'Média',
-        prazoCorrecao: null,
-        responsavelCorrecao: '',
-      }],
+      respostas: [
+        {
+          itemId: 'pneus',
+          descricao: 'Pneus em condições adequadas',
+          status: 'conforme',
+          observacao: '',
+          prioridade: 'Média',
+          prazoCorrecao: null,
+          responsavelCorrecao: '',
+        },
+      ],
     });
 
     expect(component.inspecaoEditandoId).toBe(42);

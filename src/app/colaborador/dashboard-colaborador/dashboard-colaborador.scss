@@ -1,1 +1,63 @@
-﻿.employee-dashboard{max-width:1100px;margin:0 auto;padding:32px 24px}.welcome{padding:36px;border-radius:18px;background:linear-gradient(120deg,#173f35,#287456);color:white}.welcome span{font-size:.78rem;letter-spacing:.12em;font-weight:700;opacity:.8}.welcome h1{font-size:2rem;margin:12px 0}.welcome p{margin:0;opacity:.85}.quick-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:24px}.quick-links a{padding:24px;border:1px solid #e0e7e2;border-radius:16px;background:white;text-decoration:none;color:#1b3028;box-shadow:0 8px 22px #183b2810;transition:transform .2s,box-shadow .2s}.quick-links a:hover{transform:translateY(-3px);box-shadow:0 12px 25px #183b2820}.quick-links a>span{font-size:1.8rem}.quick-links h2{font-size:1.15rem;margin:14px 0 8px}.quick-links p{color:#64736a;min-height:44px}.quick-links b{color:#26724f}
+.employee-dashboard {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.welcome {
+  padding: 24px;
+  border: 1px solid #eadb9d;
+  border-radius: var(--sst-radius);
+  background: var(--sst-yellow-soft);
+  color: var(--sst-text);
+}
+.welcome span {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--sst-warning);
+}
+.welcome h1 {
+  font-size: 28px;
+  margin: 12px 0;
+}
+.welcome p {
+  margin: 0;
+  color: var(--sst-muted);
+}
+.quick-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+.quick-links a {
+  padding: 24px;
+  border: 1px solid var(--sst-border);
+  border-radius: var(--sst-radius);
+  background: var(--sst-surface);
+  text-decoration: none;
+  color: var(--sst-text);
+}
+.quick-links a:hover {
+  border-color: var(--sst-yellow-deep);
+}
+.quick-links a > i {
+  font-size: 24px;
+  color: var(--sst-warning);
+}
+.quick-links h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 16px 0 8px;
+}
+.quick-links p {
+  color: var(--sst-muted);
+}
+.quick-links b {
+  color: var(--sst-warning);
+  font-size: 13px;
+}
+@media (max-width: 599px) {
+  .quick-links {
+    grid-template-columns: 1fr;
+  }
+}

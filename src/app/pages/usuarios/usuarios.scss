@@ -1,5 +1,6 @@
 .conteudo-pagina {
-  padding: 20px;
+  padding: 0;
+  min-width: 0;
 }
 
 .app-page-heading {
@@ -8,30 +9,38 @@
 
 .sub-nav {
   display: flex;
-  gap: 8px;
   margin-bottom: 20px;
-  border-bottom: 2px solid #e0e0e0;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--sst-border);
+  padding-bottom: 8px;
 }
 
 .sub-nav button {
   margin: 0;
   padding: 10px 16px;
-  border-radius: 4px 4px 0 0;
+  min-height: 44px;
+  border-radius: 8px;
+  color: var(--sst-muted);
   background: transparent;
-  color: #555;
+  border: 1px solid transparent;
+  margin-top: 0;
+  margin-left: 0;
 }
 
 .sub-nav button.active {
-  background: var(--charcoal);
-  color: #fff;
+  background: var(--sst-yellow-soft);
+  color: var(--sst-text);
+  border-color: var(--sst-yellow);
 }
 
 .registro-form {
   margin-bottom: 20px;
   padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: #fafafa;
+  background: var(--sst-surface);
+  border: 1px solid var(--sst-border);
+  border-radius: var(--sst-radius);
+  box-shadow: none;
 }
 
 .registro-form h3 {
@@ -40,8 +49,8 @@
 
 .form-grid {
   display: grid;
-  grid-template-columns: minmax(0, 620px);
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
 }
 
 .form-group {
@@ -54,7 +63,7 @@
   box-sizing: border-box;
   width: 100%;
   padding: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--sst-border);
   border-radius: 4px;
 }
 
@@ -75,20 +84,26 @@
 }
 
 .form-actions .cancel-button {
-  background: #e0e0e0;
-  color: #141414;
+  background: var(--sst-border);
+  color: var(--sst-text);
 }
 
 .acoes {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  background: var(--sst-surface);
+  border: 1px solid var(--sst-border);
+  border-radius: var(--sst-radius);
+  box-shadow: none;
+  padding: 20px;
+  flex-wrap: wrap;
 }
 
 input {
   padding: 8px;
   width: 250px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--sst-border);
   border-radius: 4px;
 }
 
@@ -108,26 +123,29 @@ button + button {
 }
 
 button:first-of-type {
-  margin-top: 10px;
-  background: var(--charcoal);
-  color: white;
+  background: var(--sst-yellow);
+  color: var(--sst-text);
+  border: 1px solid var(--sst-yellow-deep);
+  border-radius: 8px;
+  min-height: 44px;
+  margin-top: 0;
 }
 
 .mensagem-alerta {
   margin-bottom: 16px;
   padding: 10px 14px;
-  border: 1px solid #d6d8db;
+  border: 1px solid var(--sst-border);
   border-radius: 4px;
-  background: #f8f9fa;
-  color: #333;
+  background: var(--sst-surface);
+  color: var(--sst-text);
 }
 
 .edit-form {
   margin-top: 24px;
   padding: 20px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--sst-border);
   border-radius: 6px;
-  background: #fafafa;
+  background: var(--sst-surface);
 }
 
 .form-group {
@@ -140,7 +158,7 @@ button:first-of-type {
 .form-group select {
   width: 100%;
   padding: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--sst-border);
   border-radius: 4px;
 }
 
@@ -154,17 +172,17 @@ button:first-of-type {
 }
 
 .cancel-button {
-  background: #e0e0e0;
-  
+  background: var(--sst-border);
 }
 
 .view-form,
 .edit-form {
   margin-top: 24px;
   padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: #fafafa;
+  background: var(--sst-surface);
+  border: 1px solid var(--sst-border);
+  border-radius: var(--sst-radius);
+  box-shadow: none;
 }
 
 .detalhes-usuario {
@@ -181,7 +199,7 @@ button:first-of-type {
 
 .riscos-table th,
 .riscos-table td {
-  border: 1px solid #ddd;
+  border: 1px solid var(--sst-border);
   padding: 10px;
   text-align: left;
 }
@@ -193,9 +211,9 @@ button:first-of-type {
   align-items: end;
   margin: 16px 0;
   padding: 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--sst-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--sst-surface);
 }
 
 .user-risk-user-select {
@@ -248,8 +266,11 @@ button:first-of-type {
 }
 
 .close-view {
-  background: #6c757d;
-  color: white;
+  background: var(--sst-surface);
+  color: var(--sst-text);
+  border: 1px solid var(--sst-border);
+  border-radius: 8px;
+  min-height: 44px;
 }
 
 table {
@@ -260,11 +281,26 @@ table {
 
 th,
 td {
-  border: 1px solid #ddd;
+  border: 1px solid var(--sst-border);
   padding: 10px;
   text-align: left;
 }
 
 th {
-  background: #f5f5f5;
+  background: var(--sst-bg);
+}
+
+@media (max-width: 599px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-actions,
+  .edit-actions {
+    flex-wrap: wrap;
+  }
+  .form-actions button,
+  .edit-actions button,
+  .acoes input {
+    width: 100%;
+  }
 }

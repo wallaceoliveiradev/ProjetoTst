@@ -1,7 +1,18 @@
 import { isPlatformBrowser } from '@angular/common';
-import { ChangeDetectorRef, Component, Inject, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  Inject,
+  OnInit,
+  PLATFORM_ID,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { Dialog } from '../../shared/dialog/dialog';
 import { EpisApiItem, EpisApiService } from '../../services/epis-api.service';
 import { UsuarioApi, UsuarioApiService } from '../../services/usuario-api.service';
 
@@ -43,14 +54,7 @@ interface RegistroHistoricoEpi {
 }
 
 type CategoriaEpi =
-  | 'Cabeça'
-  | 'Olhos e Face'
-  | 'Ouvidos'
-  | 'Respiratória'
-  | 'Mãos'
-  | 'Pés'
-  | 'Corpo'
-  | 'Outros';
+  'Cabeça' | 'Olhos e Face' | 'Ouvidos' | 'Respiratória' | 'Mãos' | 'Pés' | 'Corpo' | 'Outros';
 
 interface OpcaoCatalogoEpi {
   nome: string;
@@ -88,12 +92,18 @@ interface PlanoAcaoEpi {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, Dialog],
   templateUrl: './epis.html',
   styleUrl: './epis.scss',
 })
 export class Epis implements OnInit {
-  abaAtual = 'entrega';
+  private readonly abaSelecionada = signal('entrega');
+  get abaAtual(): string {
+    return this.abaSelecionada();
+  }
+  set abaAtual(valor: string) {
+    this.abaSelecionada.set(valor);
+  }
   entregaVisualizada: EntregaEpi | null = null;
   entregaEditandoId: number | null = null;
   feedbackEntrega = '';
@@ -142,13 +152,15 @@ export class Epis implements OnInit {
   private readonly usuarioApi = inject(UsuarioApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   solicitacaoRecebida = '';
 
   constructor(@Inject(PLATFORM_ID) private readonly platformId: object) {}
 
   ngOnInit() {
     this.carregarDadosApi();
-    this.route.queryParamMap.subscribe((params) => {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      if (params.get('aba') === 'cadastro') this.selecionarAba('cadastro');
       if (params.get('aba') !== 'entrega' || !params.has('solicitacao')) return;
       const funcionarioId = Number(params.get('funcionarioId'));
       const epi = params.get('epi') ?? '';
@@ -156,7 +168,12 @@ export class Epis implements OnInit {
       const motivo = params.get('motivo') ?? '';
       if (!funcionarioId || !epi || !Number.isInteger(quantidade) || quantidade < 1) return;
       this.abaAtual = 'entrega';
-      this.entregaForm = { ...this.criarEntregaVazia(), funcionarioId, itens: [{ nome: epi, quantidade }], observacoes: motivo };
+      this.entregaForm = {
+        ...this.criarEntregaVazia(),
+        funcionarioId,
+        itens: [{ nome: epi, quantidade }],
+        observacoes: motivo,
+      };
       this.solicitacaoRecebida = `Solicitação de ${epi} (${quantidade}) recebida. Colaborador já selecionado para a entrega.`;
     });
   }
@@ -169,7 +186,10 @@ export class Epis implements OnInit {
       },
       error: (error: unknown) => {
         console.error('Não foi possível carregar os EPIs cadastrados na API.', error);
-        this.definirFeedbackCadastro('Não foi possível carregar os EPIs cadastrados no servidor.', 'error');
+        this.definirFeedbackCadastro(
+          'Não foi possível carregar os EPIs cadastrados no servidor.',
+          'error',
+        );
         this.changeDetector.markForCheck();
       },
     });
@@ -180,7 +200,8 @@ export class Epis implements OnInit {
       },
       error: (error: unknown) => {
         console.error('Não foi possível carregar os funcionários ativos.', error);
-        this.feedbackEntrega = 'Não foi possível carregar os usuários ativos. Verifique sua sessão e tente novamente.';
+        this.feedbackEntrega =
+          'Não foi possível carregar os usuários ativos. Verifique sua sessão e tente novamente.';
         this.changeDetector.markForCheck();
       },
     });
@@ -220,30 +241,28 @@ export class Epis implements OnInit {
   }
 
   private adaptarEpiApi(epi: EpisApiItem): CadastroEpi {
-    const categoria = this.catalogoEpis.find((opcao) => opcao.nome === epi.nome)?.categoria ?? 'Outros';
+    const categoria =
+      this.catalogoEpis.find((opcao) => opcao.nome === epi.nome)?.categoria ?? 'Outros';
     return { ...epi, categoria };
   }
 
   get episFiltrados(): CadastroEpi[] {
-    return this.remessasEpiSelecionado.filter((epi) => {
-      const statusCorresponde =
-        !this.filtroStatusEpi ||
-        this.statusCadastroEpi(epi.validade) === this.filtroStatusEpi;
-      return statusCorresponde;
-    }).sort((a, b) => a.dataEntrada.localeCompare(b.dataEntrada) || a.id - b.id);
+    return this.remessasEpiSelecionado
+      .filter((epi) => {
+        const statusCorresponde =
+          !this.filtroStatusEpi || this.statusCadastroEpi(epi.validade) === this.filtroStatusEpi;
+        return statusCorresponde;
+      })
+      .sort((a, b) => a.dataEntrada.localeCompare(b.dataEntrada) || a.id - b.id);
   }
 
   get totalQuantidadeEstoque(): number {
-    return this.episCadastrados.reduce(
-      (total, remessa) => total + remessa.quantidade,
-      0,
-    );
+    return this.episCadastrados.reduce((total, remessa) => total + remessa.quantidade, 0);
   }
 
   get totalEpisAtivos(): number {
-    return this.episCadastrados.filter(
-      (epi) => this.statusCadastroEpi(epi.validade) === 'Ativo',
-    ).length;
+    return this.episCadastrados.filter((epi) => this.statusCadastroEpi(epi.validade) === 'Ativo')
+      .length;
   }
 
   get totalEpisEmRevisao(): number {
@@ -253,9 +272,8 @@ export class Epis implements OnInit {
   }
 
   get totalEpisCadastroVencidos(): number {
-    return this.episCadastrados.filter(
-      (epi) => this.statusCadastroEpi(epi.validade) === 'Vencido',
-    ).length;
+    return this.episCadastrados.filter((epi) => this.statusCadastroEpi(epi.validade) === 'Vencido')
+      .length;
   }
 
   get remessasEpiSelecionado(): CadastroEpi[] {
@@ -320,9 +338,8 @@ export class Epis implements OnInit {
   }
 
   get totalEpisValidos(): number {
-    return this.entregas.filter(
-      (entrega) => this.calcularStatus(entrega.dataValidade) === 'Válido',
-    ).length;
+    return this.entregas.filter((entrega) => this.calcularStatus(entrega.dataValidade) === 'Válido')
+      .length;
   }
 
   get totalEpisProximosVencimento(): number {
@@ -371,9 +388,10 @@ export class Epis implements OnInit {
           ca: remessa?.ca ?? '',
         };
       })
-      .filter((opcao) =>
-        this.estoqueDisponivelParaEpi(opcao.nome) > 0 ||
-        (this.entregaForm.itens ?? []).some((item) => item.nome === opcao.nome),
+      .filter(
+        (opcao) =>
+          this.estoqueDisponivelParaEpi(opcao.nome) > 0 ||
+          (this.entregaForm.itens ?? []).some((item) => item.nome === opcao.nome),
       );
   }
 
@@ -415,9 +433,7 @@ export class Epis implements OnInit {
     return (
       alocacoes
         .map((alocacao) => {
-          const remessa = this.episCadastrados.find(
-            (item) => item.id === alocacao.remessaId,
-          );
+          const remessa = this.episCadastrados.find((item) => item.id === alocacao.remessaId);
           return remessa
             ? `${this.formatarData(alocacao.dataValidade || remessa.validade)}: ${alocacao.quantidade}`
             : `Remessa ${alocacao.remessaId}: ${alocacao.quantidade}`;
@@ -456,9 +472,7 @@ export class Epis implements OnInit {
       return;
     }
 
-    const definicaoCatalogo = this.catalogoEpis.find(
-      (epi) => epi.nome === this.cadastroForm.nome,
-    );
+    const definicaoCatalogo = this.catalogoEpis.find((epi) => epi.nome === this.cadastroForm.nome);
     if (!definicaoCatalogo) {
       this.definirFeedbackCadastro('Selecione um EPI da lista.', 'error');
       return;
@@ -471,16 +485,11 @@ export class Epis implements OnInit {
         epi.validade === this.cadastroForm.validade,
     );
     if (remessaDuplicada) {
-      this.definirFeedbackCadastro(
-        'Já existe uma remessa deste EPI com esta validade.',
-        'error',
-      );
+      this.definirFeedbackCadastro('Já existe uma remessa deste EPI com esta validade.', 'error');
       return;
     }
 
-    const remessaAtual = this.episCadastrados.find(
-      (remessa) => remessa.id === this.epiEditandoId,
-    );
+    const remessaAtual = this.episCadastrados.find((remessa) => remessa.id === this.epiEditandoId);
     if (
       remessaAtual &&
       remessaAtual.nome !== definicaoCatalogo.nome &&
@@ -504,9 +513,10 @@ export class Epis implements OnInit {
       validade: this.cadastroForm.validade,
       ca: definicaoCatalogo.ca,
     };
-    const salvar = estavaEditando && this.epiEditandoId !== null
-      ? this.episApi.atualizar(this.epiEditandoId, request)
-      : this.episApi.criar(request);
+    const salvar =
+      estavaEditando && this.epiEditandoId !== null
+        ? this.episApi.atualizar(this.epiEditandoId, request)
+        : this.episApi.criar(request);
     salvar.subscribe({
       next: () => {
         this.cadastroForm = {
@@ -524,21 +534,25 @@ export class Epis implements OnInit {
           },
           error: (error: unknown) => {
             console.error('O EPI foi salvo, mas não foi possível atualizar o estoque.', error);
-            this.definirFeedbackCadastro('Remessa salva, mas não foi possível atualizar a lista do servidor.', 'error');
+            this.definirFeedbackCadastro(
+              'Remessa salva, mas não foi possível atualizar a lista do servidor.',
+              'error',
+            );
             this.changeDetector.markForCheck();
           },
         });
-      this.definirFeedbackCadastro(
-        estavaEditando
-          ? 'Remessa atualizada com sucesso.'
-          : 'Remessa cadastrada com sucesso.',
-        'success',
-      );
+        this.definirFeedbackCadastro(
+          estavaEditando ? 'Remessa atualizada com sucesso.' : 'Remessa cadastrada com sucesso.',
+          'success',
+        );
         this.changeDetector.markForCheck();
       },
       error: (error: unknown) => {
         console.error('Não foi possível salvar a remessa no servidor.', error);
-        this.definirFeedbackCadastro('Não foi possível salvar a remessa. Verifique sua sessão e tente novamente.', 'error');
+        this.definirFeedbackCadastro(
+          'Não foi possível salvar a remessa. Verifique sua sessão e tente novamente.',
+          'error',
+        );
         this.changeDetector.markForCheck();
       },
     });
@@ -567,8 +581,7 @@ export class Epis implements OnInit {
     this.entregaForm.epi = nome;
     const definicao = this.definicaoCatalogoEpi(nome);
     this.entregaForm.ca = definicao?.ca ?? '';
-    this.entregaForm.dataValidade =
-      this.remessasDisponiveisParaEntrega(nome)[0]?.validade ?? '';
+    this.entregaForm.dataValidade = this.remessasDisponiveisParaEntrega(nome)[0]?.validade ?? '';
   }
 
   adicionarItemEntrega() {
@@ -576,7 +589,9 @@ export class Epis implements OnInit {
   }
 
   removerItemEntrega(indice: number) {
-    this.entregaForm.itens = (this.entregaForm.itens ?? []).filter((_, posicao) => posicao !== indice);
+    this.entregaForm.itens = (this.entregaForm.itens ?? []).filter(
+      (_, posicao) => posicao !== indice,
+    );
   }
 
   definicaoCatalogoEpi(nome: string): OpcaoCatalogoEpi | undefined {
@@ -623,7 +638,10 @@ export class Epis implements OnInit {
       error: (error: unknown) => {
         console.error('Não foi possível excluir o EPI no servidor.', error);
         this.epiParaExcluir = null;
-        this.definirFeedbackCadastro('Não foi possível excluir o EPI. Verifique se há entregas vinculadas.', 'error');
+        this.definirFeedbackCadastro(
+          'Não foi possível excluir o EPI. Verifique se há entregas vinculadas.',
+          'error',
+        );
         this.changeDetector.markForCheck();
       },
     });
@@ -675,9 +693,7 @@ export class Epis implements OnInit {
     if (this.entregaEditandoId === null) {
       return this.remessasDisponiveis(nomeEpi);
     }
-    const entregaOriginal = this.entregas.find(
-      (entrega) => entrega.id === this.entregaEditandoId,
-    );
+    const entregaOriginal = this.entregas.find((entrega) => entrega.id === this.entregaEditandoId);
     const estoqueRestaurado = entregaOriginal
       ? this.restaurarAlocacoes(
           this.episCadastrados,
@@ -718,10 +734,7 @@ export class Epis implements OnInit {
           a.dataEntrada.localeCompare(b.dataEntrada) ||
           a.id - b.id,
       );
-    const disponivel = candidatas.reduce(
-      (total, remessa) => total + remessa.quantidade,
-      0,
-    );
+    const disponivel = candidatas.reduce((total, remessa) => total + remessa.quantidade, 0);
     if (disponivel < quantidade) {
       return null;
     }
@@ -755,8 +768,7 @@ export class Epis implements OnInit {
     quantidadeEsperada: number,
   ): CadastroEpi[] | null {
     if (
-      alocacoes.reduce((total, alocacao) => total + alocacao.quantidade, 0) !==
-      quantidadeEsperada
+      alocacoes.reduce((total, alocacao) => total + alocacao.quantidade, 0) !== quantidadeEsperada
     ) {
       return null;
     }
@@ -777,10 +789,7 @@ export class Epis implements OnInit {
     });
   }
 
-  private mensagemEstoqueInsuficiente(
-    nomeEpi: string,
-    remessas = this.episCadastrados,
-  ): string {
+  private mensagemEstoqueInsuficiente(nomeEpi: string, remessas = this.episCadastrados): string {
     const disponivel = remessas
       .filter(
         (remessa) =>
@@ -788,17 +797,11 @@ export class Epis implements OnInit {
           remessa.quantidade > 0 &&
           this.statusCadastroEpi(remessa.validade) !== 'Vencido',
       )
-      .reduce(
-        (total, remessa) => total + remessa.quantidade,
-        0,
-      );
+      .reduce((total, remessa) => total + remessa.quantidade, 0);
     return `Quantidade indisponível. Há apenas ${disponivel} unidades em estoque.`;
   }
 
-  private definirFeedbackCadastro(
-    mensagem: string,
-    tipo: 'success' | 'error',
-  ) {
+  private definirFeedbackCadastro(mensagem: string, tipo: 'success' | 'error') {
     this.feedbackCadastro = mensagem;
     this.tipoFeedbackCadastro = tipo;
   }
@@ -827,8 +830,7 @@ export class Epis implements OnInit {
         this.carregarEstadoUnificadoSalvo(JSON.parse(estadoSalvo) as unknown);
       } catch (error) {
         console.error('Não foi possível interpretar o estado local de EPIs.', error);
-        this.feedbackEntrega =
-          'Os dados locais de estoque, entregas ou histórico estão inválidos.';
+        this.feedbackEntrega = 'Os dados locais de estoque, entregas ou histórico estão inválidos.';
       }
       return;
     }
@@ -873,9 +875,7 @@ export class Epis implements OnInit {
     const remessas = estado['remessas']
       .map((item, index) => this.normalizarEpiSalvo(item, index))
       .filter((item): item is CadastroEpi => item !== null);
-    const entregas = estado['entregas'].map((item) =>
-      this.normalizarEntregaSalva(item),
-    );
+    const entregas = estado['entregas'].map((item) => this.normalizarEntregaSalva(item));
     const historico = estado['historico'].map((item) =>
       this.normalizarRegistroHistoricoSalvo(item),
     );
@@ -887,9 +887,7 @@ export class Epis implements OnInit {
       throw new Error('O estado local contém registros inválidos.');
     }
     this.episCadastrados = remessas;
-    this.entregas = entregas.filter(
-      (item): item is EntregaEpi => item !== null,
-    );
+    this.entregas = entregas.filter((item): item is EntregaEpi => item !== null);
     this.historicoEntregas = historico.filter(
       (item): item is RegistroHistoricoEpi => item !== null,
     );
@@ -902,8 +900,7 @@ export class Epis implements OnInit {
     const item = valor as Record<string, unknown>;
     const nomeSalvo = typeof item['nome'] === 'string' ? item['nome'].trim() : '';
     const nome = this.nomeCatalogoNormalizado(nomeSalvo);
-    const validade =
-      typeof item['validade'] === 'string' ? item['validade'] : '';
+    const validade = typeof item['validade'] === 'string' ? item['validade'] : '';
     if (!nome || !validade) {
       return null;
     }
@@ -929,8 +926,7 @@ export class Epis implements OnInit {
           : indice + 1,
       nome,
       categoria,
-      dataEntrada:
-        typeof item['dataEntrada'] === 'string' ? item['dataEntrada'] : '',
+      dataEntrada: typeof item['dataEntrada'] === 'string' ? item['dataEntrada'] : '',
       quantidade,
       validade,
       ca: opcaoCatalogo.ca,
@@ -987,15 +983,11 @@ export class Epis implements OnInit {
         if (!Array.isArray(dados)) {
           throw new Error('O formato das entregas salvas é inválido.');
         }
-        const entregasNormalizadas = dados.map((item) =>
-          this.normalizarEntregaSalva(item),
-        );
+        const entregasNormalizadas = dados.map((item) => this.normalizarEntregaSalva(item));
         if (entregasNormalizadas.some((item) => item === null)) {
           throw new Error('Há entregas salvas com dados ou lotes de origem inválidos.');
         }
-        this.entregas = entregasNormalizadas.filter(
-          (item): item is EntregaEpi => item !== null,
-        );
+        this.entregas = entregasNormalizadas.filter((item): item is EntregaEpi => item !== null);
       }
 
       if (historicoSalvo !== null) {
@@ -1016,8 +1008,7 @@ export class Epis implements OnInit {
       return true;
     } catch (error) {
       console.error('Não foi possível carregar entregas e histórico salvos.', error);
-      this.feedbackEntrega =
-        'Não foi possível carregar os dados locais de entregas e histórico.';
+      this.feedbackEntrega = 'Não foi possível carregar os dados locais de entregas e histórico.';
       return false;
     }
   }
@@ -1051,8 +1042,7 @@ export class Epis implements OnInit {
       : [];
     if (
       remessas.length !== item['remessas'].length ||
-      remessas.reduce((total, alocacao) => total + alocacao.quantidade, 0) !==
-        item['quantidade']
+      remessas.reduce((total, alocacao) => total + alocacao.quantidade, 0) !== item['quantidade']
     ) {
       return null;
     }
@@ -1063,28 +1053,19 @@ export class Epis implements OnInit {
       quantidade: item['quantidade'],
       dataEntrega: item['dataEntrega'],
       dataValidade: item['dataValidade'],
-      ca:
-        this.definicaoCatalogoEpi(this.nomeCatalogoNormalizado(item['epi']))?.ca ??
-        '',
-      observacoes:
-        typeof item['observacoes'] === 'string' ? item['observacoes'] : '',
+      ca: this.definicaoCatalogoEpi(this.nomeCatalogoNormalizado(item['epi']))?.ca ?? '',
+      observacoes: typeof item['observacoes'] === 'string' ? item['observacoes'] : '',
       status,
       remessas,
     };
   }
 
-  private normalizarRegistroHistoricoSalvo(
-    valor: unknown,
-  ): RegistroHistoricoEpi | null {
+  private normalizarRegistroHistoricoSalvo(valor: unknown): RegistroHistoricoEpi | null {
     if (typeof valor !== 'object' || valor === null) {
       return null;
     }
     const item = valor as Record<string, unknown>;
-    const acoes: AcaoHistorico[] = [
-      'Entrega registrada',
-      'Entrega alterada',
-      'Entrega excluída',
-    ];
+    const acoes: AcaoHistorico[] = ['Entrega registrada', 'Entrega alterada', 'Entrega excluída'];
     if (
       typeof item['id'] !== 'number' ||
       typeof item['dataHora'] !== 'string' ||
@@ -1123,8 +1104,7 @@ export class Epis implements OnInit {
     return {
       remessaId: item['remessaId'],
       quantidade: item['quantidade'],
-      dataValidade:
-        typeof item['dataValidade'] === 'string' ? item['dataValidade'] : '',
+      dataValidade: typeof item['dataValidade'] === 'string' ? item['dataValidade'] : '',
     };
   }
 
@@ -1168,12 +1148,12 @@ export class Epis implements OnInit {
   abrirNovaAcaoParaValidades() {
     this.acaoEditandoId = null;
     this.acaoForm = this.criarAcaoVazia();
-    this.acaoForm.titulo = this.totalEpisVencidos > 0
-      ? 'Regularizar EPIs vencidos'
-      : 'Programar substituição de EPIs';
-    this.acaoForm.problema = this.totalEpisVencidos > 0
-      ? 'Existem EPIs vencidos no controle de validade.'
-      : 'Existem EPIs próximos do vencimento.';
+    this.acaoForm.titulo =
+      this.totalEpisVencidos > 0 ? 'Regularizar EPIs vencidos' : 'Programar substituição de EPIs';
+    this.acaoForm.problema =
+      this.totalEpisVencidos > 0
+        ? 'Existem EPIs vencidos no controle de validade.'
+        : 'Existem EPIs próximos do vencimento.';
     this.formularioAcaoAberto = true;
     this.abaAtual = 'acao';
   }
@@ -1219,9 +1199,7 @@ export class Epis implements OnInit {
       ];
     } else {
       this.acoesPlano = this.acoesPlano.map((acao) =>
-        acao.id === this.acaoEditandoId
-          ? { ...this.acaoForm, id: acao.id }
-          : acao,
+        acao.id === this.acaoEditandoId ? { ...this.acaoForm, id: acao.id } : acao,
       );
     }
     this.cancelarFormularioAcao();
@@ -1292,7 +1270,9 @@ export class Epis implements OnInit {
       return;
     }
 
-    const funcionario = this.funcionarios.find((user) => user.id === this.entregaForm.funcionarioId);
+    const funcionario = this.funcionarios.find(
+      (user) => user.id === this.entregaForm.funcionarioId,
+    );
     if (!funcionario) {
       this.errosFormulario['funcionario'] = 'Selecione um funcionário ativo cadastrado.';
       return;
@@ -1346,7 +1326,9 @@ export class Epis implements OnInit {
   }
 
   private alterarEntrega() {
-    const funcionario = this.funcionarios.find((user) => user.id === this.entregaForm.funcionarioId);
+    const funcionario = this.funcionarios.find(
+      (user) => user.id === this.entregaForm.funcionarioId,
+    );
     if (funcionario) this.salvarEntregaNoServidor(funcionario);
   }
 
@@ -1382,7 +1364,7 @@ export class Epis implements OnInit {
           itens: resposta.itens.map((item) => ({ ...item })),
         };
         this.entregas = entregaAnterior
-          ? this.entregas.map((item) => item.id === entrega.id ? entrega : item)
+          ? this.entregas.map((item) => (item.id === entrega.id ? entrega : item))
           : [entrega, ...this.entregas];
         this.adicionarRegistroHistorico(
           entrega,
@@ -1414,7 +1396,8 @@ export class Epis implements OnInit {
       },
       error: (error: unknown) => {
         console.error('Não foi possível atualizar o estoque após a entrega.', error);
-        this.feedbackEntrega = 'A entrega foi salva, mas não foi possível atualizar a visualização do estoque.';
+        this.feedbackEntrega =
+          'A entrega foi salva, mas não foi possível atualizar a visualização do estoque.';
         this.tipoFeedbackEntrega = 'error';
         this.changeDetector.markForCheck();
       },
@@ -1446,23 +1429,15 @@ export class Epis implements OnInit {
       .map(({ chave, descricao, data }) => {
         const valorAntigo = antiga[chave];
         const valorNovo = atualizada[chave];
-        const anterior = data
-          ? this.formatarData(String(valorAntigo))
-          : String(valorAntigo || '—');
-        const novo = data
-          ? this.formatarData(String(valorNovo))
-          : String(valorNovo || '—');
+        const anterior = data ? this.formatarData(String(valorAntigo)) : String(valorAntigo || '—');
+        const novo = data ? this.formatarData(String(valorNovo)) : String(valorNovo || '—');
 
         return `${descricao}: ${anterior} → ${novo}`;
       })
       .join('; ');
   }
 
-  private adicionarRegistroHistorico(
-    entrega: EntregaEpi,
-    acao: AcaoHistorico,
-    detalhes: string,
-  ) {
+  private adicionarRegistroHistorico(entrega: EntregaEpi, acao: AcaoHistorico, detalhes: string) {
     this.historicoEntregas = [
       {
         id: this.proximoId(this.historicoEntregas),

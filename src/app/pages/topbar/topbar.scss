@@ -1,103 +1,164 @@
-/* ===========================
-   TOPBAR
-=========================== */
-
-.topbar {
-  min-height: 70px;
-
-  width: 100%;
-
-  background: #e0dddd;
-
-  display: flex;
-
-  justify-content: space-between;
-
-  align-items: center;
-
-  padding: 0 25px;
-
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-  z-index: 100;
-  flex-wrap: wrap;
-  gap: 12px;
+:host {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
-
-/* Pesquisa */
-
+.topbar {
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--sst-border);
+  background: var(--sst-surface);
+}
 .search-box {
   display: flex;
-
   align-items: center;
-
-  width: 100%;
-
+  gap: 12px;
+  flex: 1;
   max-width: 420px;
-
-  background: #f4f5f8;
-
-  border-radius: 25px;
-
-  padding: 10px 15px;
+  min-width: 0;
+  padding: 0 12px;
+  background: var(--sst-bg);
+  border: 1px solid var(--sst-border);
+  border-radius: 8px;
+  color: var(--sst-muted);
 }
-
-.search-box i {
-  color: #888;
-
-  margin-right: 10px;
-}
-
 .search-box input {
-  border: none;
-
-  outline: none;
-
-  background: transparent;
-
+  min-height: 44px;
   width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sst-text);
 }
-
-/* Lado direito */
-
 .topbar-right {
   display: flex;
-
   align-items: center;
-
-  gap: 20px;
-  flex-wrap: wrap;
+  gap: 16px;
+  min-width: 0;
 }
-
-/* Botões */
-
 .icon-btn {
   position: relative;
-
-  border: none;
-
-  background: none;
-
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--sst-muted);
   font-size: 22px;
-
   cursor: pointer;
-
-  color: #444;
-
-  transition: 0.3s;
+  border-radius: 8px;
 }
-
 .icon-btn:hover {
-  color: #0d6efd;
+  background: var(--sst-yellow-soft);
+  color: var(--sst-warning);
 }
-
-/* Conteúdo */
-
-.page-content {
-  flex: 1;
-
-  padding: 25px;
-
-  overflow: auto;
+.notification-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 12px;
+  background: var(--sst-danger);
+  color: white;
+  font-size: 12px;
 }
-.notification-count{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:10px;background:#b42318;color:white;font-size:11px;line-height:18px;text-align:center}.icon-btn{position:relative}
+.account {
+  position: relative;
+  min-width: 0;
+}
+.account summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border-radius: 8px;
+  padding: 4px;
+  cursor: pointer;
+  list-style: none;
+}
+.account summary::-webkit-details-marker {
+  display: none;
+}
+.account-avatar {
+  font-size: 32px;
+  color: var(--sst-warning);
+}
+.account-summary {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 180px;
+}
+.account-summary strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.account small {
+  color: var(--sst-muted);
+  font-size: 12px;
+}
+.account-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(300px, calc(100vw - 32px));
+  padding: 12px;
+  background: var(--sst-surface);
+  border: 1px solid var(--sst-border);
+  border-radius: var(--sst-radius);
+  box-shadow: 0 12px 32px #15211c1a;
+}
+.account-info {
+  display: grid;
+  padding: 8px 12px 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--sst-border);
+  overflow-wrap: anywhere;
+}
+.account-menu a,
+.account-menu button {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sst-text);
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+}
+.account-menu a:hover,
+.account-menu button:hover {
+  background: var(--sst-yellow-soft);
+}
+.account-menu button {
+  color: var(--sst-danger);
+}
+@media (max-width: 767px) {
+  .account-summary,
+  .account-chevron {
+    display: none;
+  }
+}
+@media (max-width: 599px) {
+  .topbar {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+  .topbar-right {
+    gap: 4px;
+  }
+}

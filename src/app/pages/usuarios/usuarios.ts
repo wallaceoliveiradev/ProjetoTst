@@ -11,6 +11,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Dialog } from '../../shared/dialog/dialog';
 
 interface RiscoUsuario {
   riscoId: number;
@@ -45,12 +46,11 @@ interface CadastroUsuario {
 @Component({
   selector: 'app-usuarios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Dialog],
   templateUrl: './usuarios.html',
-  styleUrls: ['./usuarios.scss']
+  styleUrls: ['./usuarios.scss'],
 })
 export class UsuariosComponent implements OnInit {
-
   termoBusca = '';
   mensagem = '';
   subNavAtiva: 'lista' | 'cadastro' | 'riscos' = 'lista';
@@ -103,7 +103,13 @@ export class UsuariosComponent implements OnInit {
         cargo: usuario.cargo ?? '',
         perfil: usuario.perfil,
         ativo: usuario.status === 'ATIVO',
-        dataCadastro: usuario.dataCadastro ?? usuario.dataAdmissao ?? usuario.dataCriacao ?? usuario.criadoEm ?? usuario.createdAt ?? null,
+        dataCadastro:
+          usuario.dataCadastro ??
+          usuario.dataAdmissao ??
+          usuario.dataCriacao ??
+          usuario.criadoEm ??
+          usuario.createdAt ??
+          null,
         riscos: [],
       }));
       this.buscarUsuario();
@@ -131,7 +137,6 @@ export class UsuariosComponent implements OnInit {
   }
 
   buscarUsuario(): void {
-
     const termo = this.termoBusca.trim().toLowerCase();
 
     const usuarioLogado = this.authService.getUsuarioLogado();
@@ -146,10 +151,7 @@ export class UsuariosComponent implements OnInit {
     if (usuarioLogado.role === 'admin') {
       usuariosPermitidos = this.usuarios;
     } else {
-      
-      usuariosPermitidos = this.usuarios.filter(
-        usuario => usuario.nome === usuarioLogado.nome
-      );
+      usuariosPermitidos = this.usuarios.filter((usuario) => usuario.nome === usuarioLogado.nome);
     }
 
     if (!termo) {
@@ -157,26 +159,22 @@ export class UsuariosComponent implements OnInit {
       return;
     }
 
-    this.usuariosFiltrados = usuariosPermitidos.filter(usuario =>
-      usuario.nome.toLowerCase().includes(termo) ||
-      usuario.cargo.toLowerCase().includes(termo) ||
-      usuario.perfil.toLowerCase().includes(termo)
+    this.usuariosFiltrados = usuariosPermitidos.filter(
+      (usuario) =>
+        usuario.nome.toLowerCase().includes(termo) ||
+        usuario.cargo.toLowerCase().includes(termo) ||
+        usuario.perfil.toLowerCase().includes(termo),
     );
   }
 
   visualizarUsuario(usuario: Usuario): void {
-
     const usuarioLogado = this.authService.getUsuarioLogado();
 
     if (!usuarioLogado) {
       return;
     }
 
-   
-    if (
-      usuarioLogado.role === 'colaborador' &&
-      usuario.nome !== usuarioLogado.nome
-    ) {
+    if (usuarioLogado.role === 'colaborador' && usuario.nome !== usuarioLogado.nome) {
       alert('Você não tem permissão para visualizar este usuário.');
       return;
     }
@@ -204,14 +202,14 @@ export class UsuariosComponent implements OnInit {
         this.changeDetector.markForCheck();
       },
       error: (erro: HttpErrorResponse) => {
-        this.riscosMensagem = erro.status === 0
-          ? 'Não foi possível conectar à API de riscos.'
-          : `Não foi possível carregar os riscos associados (HTTP ${erro.status}).`;
+        this.riscosMensagem =
+          erro.status === 0
+            ? 'Não foi possível conectar à API de riscos.'
+            : `Não foi possível carregar os riscos associados (HTTP ${erro.status}).`;
         this.riscosCarregando = false;
         this.changeDetector.markForCheck();
       },
     });
-
   }
 
   abrirGestaoRiscoUsuario(usuario: Usuario | null = null): void {
@@ -234,9 +232,10 @@ export class UsuariosComponent implements OnInit {
         this.changeDetector.markForCheck();
       },
       error: (erro: HttpErrorResponse) => {
-        this.riscosMensagem = erro.status === 0
-          ? 'Não foi possível conectar à API para carregar riscos ativos.'
-          : `Não foi possível carregar riscos ativos (HTTP ${erro.status}).`;
+        this.riscosMensagem =
+          erro.status === 0
+            ? 'Não foi possível conectar à API para carregar riscos ativos.'
+            : `Não foi possível carregar riscos ativos (HTTP ${erro.status}).`;
         this.changeDetector.markForCheck();
       },
     });
@@ -268,9 +267,10 @@ export class UsuariosComponent implements OnInit {
       },
       error: (erro: HttpErrorResponse) => {
         this.riscosCarregando = false;
-        this.riscosMensagem = erro.status === 0
-          ? 'Não foi possível conectar à API para carregar as associações.'
-          : `Não foi possível carregar as associações (HTTP ${erro.status}).`;
+        this.riscosMensagem =
+          erro.status === 0
+            ? 'Não foi possível conectar à API para carregar as associações.'
+            : `Não foi possível carregar as associações (HTTP ${erro.status}).`;
         this.changeDetector.markForCheck();
       },
     });
@@ -315,8 +315,7 @@ export class UsuariosComponent implements OnInit {
     if (!this.usuarioGestaoRisco || !this.authService.isAdmin()) {
       return;
     }
-    this.riscosEmEdicao = this.riscosEmEdicao
-      .filter((risco) => risco.riscoId !== riscoId);
+    this.riscosEmEdicao = this.riscosEmEdicao.filter((risco) => risco.riscoId !== riscoId);
     this.riscosMensagem = 'Associação removida da lista. Salve para confirmar.';
     this.changeDetector.markForCheck();
   }
@@ -346,9 +345,10 @@ export class UsuariosComponent implements OnInit {
         this.changeDetector.markForCheck();
       },
       error: (erro: HttpErrorResponse) => {
-        this.riscosMensagem = erro.status === 0
-          ? 'Não foi possível conectar à API para salvar as associações.'
-          : `Não foi possível salvar as associações (HTTP ${erro.status}).`;
+        this.riscosMensagem =
+          erro.status === 0
+            ? 'Não foi possível conectar à API para salvar as associações.'
+            : `Não foi possível salvar as associações (HTTP ${erro.status}).`;
         this.salvandoRiscos = false;
         this.changeDetector.markForCheck();
       },
@@ -363,7 +363,6 @@ export class UsuariosComponent implements OnInit {
   }
 
   editarUsuario(usuario: Usuario): void {
-
     const usuarioLogado = this.authService.getUsuarioLogado();
 
     if (!usuarioLogado) {
@@ -372,9 +371,7 @@ export class UsuariosComponent implements OnInit {
 
     // ADM pode editar qualquer usuário
     // Colaborador só pode editar a si mesmo
-    const podeEditar =
-      usuarioLogado.role === 'admin' ||
-      usuario.nome === usuarioLogado.nome;
+    const podeEditar = usuarioLogado.role === 'admin' || usuario.nome === usuarioLogado.nome;
 
     if (!podeEditar) {
       alert('Você não tem permissão para editar este usuário.');
@@ -387,14 +384,11 @@ export class UsuariosComponent implements OnInit {
   }
 
   salvarEdicao(): void {
-
     if (!this.usuarioSelecionado) {
       return;
     }
 
-    const index = this.usuarios.findIndex(
-      usuario => usuario.id === this.usuarioSelecionado!.id
-    );
+    const index = this.usuarios.findIndex((usuario) => usuario.id === this.usuarioSelecionado!.id);
 
     if (index !== -1) {
       this.usuarios[index] = { ...this.usuarioSelecionado };
@@ -463,34 +457,38 @@ export class UsuariosComponent implements OnInit {
       return;
     }
 
-    this.usuarioApiService.cadastrar({
-      ...this.novoUsuario,
-      status: 'ATIVO',
-    }).subscribe({
-      next: () => {
-        this.termoBusca = '';
-        this.novoUsuario = this.novoUsuarioVazio();
-        formulario.resetForm(this.novoUsuario);
-        this.subNavAtiva = 'lista';
-        this.mensagem = 'Usuário registrado com sucesso.';
-        this.carregarUsuarios();
-      },
-      error: (erro: HttpErrorResponse) => {
-        if (erro.status === 401) {
-          this.mensagem = 'Sua sessão expirou. Faça login novamente e tente registrar o usuário.';
-          return;
-        }
+    this.usuarioApiService
+      .cadastrar({
+        ...this.novoUsuario,
+        status: 'ATIVO',
+      })
+      .subscribe({
+        next: () => {
+          this.termoBusca = '';
+          this.novoUsuario = this.novoUsuarioVazio();
+          formulario.resetForm(this.novoUsuario);
+          this.subNavAtiva = 'lista';
+          this.mensagem = 'Usuário registrado com sucesso.';
+          this.carregarUsuarios();
+        },
+        error: (erro: HttpErrorResponse) => {
+          if (erro.status === 401) {
+            this.mensagem = 'Sua sessão expirou. Faça login novamente e tente registrar o usuário.';
+            return;
+          }
 
-        if (erro.status === 403) {
-          this.mensagem = 'Sua conta não tem permissão para registrar usuários. Entre com um perfil administrador.';
-          return;
-        }
+          if (erro.status === 403) {
+            this.mensagem =
+              'Sua conta não tem permissão para registrar usuários. Entre com um perfil administrador.';
+            return;
+          }
 
-        this.mensagem = erro.status === 409
-          ? 'Este e-mail já está cadastrado.'
-          : `Não foi possível registrar o usuário (HTTP ${erro.status}).`;
-      },
-    });
+          this.mensagem =
+            erro.status === 409
+              ? 'Este e-mail já está cadastrado.'
+              : `Não foi possível registrar o usuário (HTTP ${erro.status}).`;
+        },
+      });
   }
 
   cancelarCadastro(): void {
