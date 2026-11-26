@@ -55,6 +55,11 @@ export class UsuarioApiService {
     }).pipe(map((resposta) => this.adaptar(resposta)));
   }
 
+  atualizarStatus(id: number, status: 'ATIVO' | 'INATIVO'): Observable<UsuarioApi> {
+    return this.http.patch<UsuarioApiResponse>(`${this.url}/${id}/status`, { status })
+      .pipe(map((resposta) => this.adaptar(resposta)));
+  }
+
   private adaptar(usuario: UsuarioApiResponse): UsuarioApi {
     const perfil = usuario.perfil.toLowerCase();
     if (perfil !== 'admin' && perfil !== 'colaborador') {

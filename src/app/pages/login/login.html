@@ -43,6 +43,9 @@
       <button type="submit" class="btn-login" [disabled]="autenticando">
         {{ autenticando ? 'Entrando...' : 'Entrar' }}
       </button>
+      @if (erroLogin) {
+        <p class="login-error" role="alert">{{ erroLogin }}</p>
+      }
     </form>
 
     <button type="button" class="btn-recuperar" (click)="abrirRecuperacao()">

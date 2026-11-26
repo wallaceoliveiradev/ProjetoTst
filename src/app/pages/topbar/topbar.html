@@ -12,17 +12,50 @@
   </div>
   <div class="topbar-right">
     @if (authService.isAdmin()) {
-      <button
-        type="button"
-        class="icon-btn"
-        aria-label="Solicitações de EPI"
-        (click)="abrirSolicitacoes()"
-      >
-        <i class="bi bi-bell" aria-hidden="true"></i>
-        @if (solicitacoesPendentes > 0) {
-          <span class="notification-count">{{ solicitacoesPendentes }}</span>
+      <div class="notification-center" (keydown.escape)="fecharNotificacoes()">
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label="Notificações"
+          title="Notificações"
+          [attr.aria-expanded]="notificacoesAbertas"
+          aria-haspopup="menu"
+          (click)="alternarNotificacoes()"
+        >
+          <i class="bi bi-bell" aria-hidden="true"></i>
+          @if (notificacoes.length > 0) {
+            <span class="notification-count">{{ notificacoes.length }}</span>
+          }
+        </button>
+        @if (notificacoesAbertas) {
+          <div class="notification-dropdown" role="menu" aria-label="Notificações pendentes">
+            <h2>Notificações</h2>
+            @if (notificacoes.length === 0) {
+              <p class="notification-empty">Nenhuma notificação pendente.</p>
+            }
+            @for (notificacao of notificacoes; track notificacao.tipo + notificacao.data.id) {
+              <button
+                type="button"
+                class="notification-item"
+                role="menuitem"
+                (click)="abrirNotificacao(notificacao)"
+              >
+                @if (notificacao.tipo === 'epi') {
+                  <strong>Solicitação de EPI</strong>
+                  <span>{{ notificacao.data.nomeColaborador }} solicitou {{ notificacao.data.epi }} ({{ notificacao.data.quantidade }}).</span>
+                  <small>Motivo: {{ notificacao.data.motivo }}</small>
+                  <small>{{ formatarDataNotificacao(notificacao.data.data) }}</small>
+                } @else {
+                  <strong>Conta bloqueada</strong>
+                  <span>{{ notificacao.data.nomeUsuario }} ({{ notificacao.data.emailUsuario }})</span>
+                  <small>Conta inativada após tentativas de login incorretas.</small>
+                  <small>{{ formatarDataNotificacao(notificacao.data.criadaEm) }}</small>
+                }
+              </button>
+            }
+          </div>
         }
-      </button>
+      </div>
     }
     <details class="account" (keydown.escape)="fecharConta($event)">
       <summary aria-label="Abrir opções da conta">

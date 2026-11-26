@@ -11,6 +11,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 import { Dialog } from '../../shared/dialog/dialog';
 
 interface RiscoUsuario {
@@ -73,25 +74,36 @@ export class UsuariosComponent implements OnInit {
   riscosCarregando = false;
   salvandoRiscos = false;
   riscosMensagem = '';
+  riscosSalvosComSucesso = false;
   riscoSelecionadoId: number | null = null;
   novaValidade = '';
   readonly hoje = this.dataHojeLocal();
+  private usuarioIdNotificado: number | null = null;
 
   constructor(
     public authService: AuthService,
     private usuarioApiService: UsuarioApiService,
     private riscosApi: RiscoApiService,
     private changeDetector: ChangeDetectorRef,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params) => {
+      const id = Number(params.get('usuarioId'));
+      this.usuarioIdNotificado = Number.isInteger(id) && id > 0 ? id : null;
+      this.abrirUsuarioNotificado();
+    });
     this.carregarUsuarios();
   }
 
   carregarUsuarios(): void {
     const usuarioLogado = this.authService.getUsuarioLogado();
-    if (!usuarioLogado) {
+    const administrador = this.authService.isAdmin();
+    if (!administrador && !usuarioLogado) {
       this.usuariosFiltrados = [];
+      this.mensagem = 'Não foi possível identificar sua sessão. Entre novamente no sistema.';
+      this.changeDetector.detectChanges();
       return;
     }
 
@@ -113,15 +125,18 @@ export class UsuariosComponent implements OnInit {
         riscos: [],
       }));
       this.buscarUsuario();
-      this.changeDetector.markForCheck();
+      this.abrirUsuarioNotificado();
+      // Atualiza imediatamente a lista quando a resposta assíncrona chega,
+      // inclusive quando a requisição é concluída fora do ciclo normal do Angular.
+      this.changeDetector.detectChanges();
     };
 
-    if (this.authService.isAdmin()) {
+    if (administrador) {
       this.usuarioApiService.listar().subscribe({
         next: carregar,
         error: (erro: HttpErrorResponse) => {
           this.mensagem = `Não foi possível carregar usuários (HTTP ${erro.status}).`;
-          this.changeDetector.markForCheck();
+          this.changeDetector.detectChanges();
         },
       });
       return;
@@ -131,7 +146,7 @@ export class UsuariosComponent implements OnInit {
       next: (usuario) => carregar([usuario]),
       error: (erro: HttpErrorResponse) => {
         this.mensagem = `Não foi possível carregar seu usuário (HTTP ${erro.status}).`;
-        this.changeDetector.markForCheck();
+        this.changeDetector.detectChanges();
       },
     });
   }
@@ -195,19 +210,23 @@ export class UsuariosComponent implements OnInit {
       : this.riscosApi.listarMinhasAssociacoes();
     requisicao.subscribe({
       next: (riscos) => {
-        if (this.usuarioVisualizado?.id === usuario.id) {
-          this.usuarioVisualizado.riscos = riscos.map((risco) => this.adaptarRiscoUsuario(risco));
-        }
+        const usuarioAtual = this.usuarioVisualizado;
+        if (usuarioAtual?.id !== usuario.id) return;
+        this.usuarioVisualizado = {
+          ...usuarioAtual,
+          riscos: riscos.map((risco) => this.adaptarRiscoUsuario(risco)),
+        };
         this.riscosCarregando = false;
-        this.changeDetector.markForCheck();
+        this.changeDetector.detectChanges();
       },
       error: (erro: HttpErrorResponse) => {
+        if (this.usuarioVisualizado?.id !== usuario.id) return;
         this.riscosMensagem =
           erro.status === 0
             ? 'Não foi possível conectar à API de riscos.'
             : `Não foi possível carregar os riscos associados (HTTP ${erro.status}).`;
         this.riscosCarregando = false;
-        this.changeDetector.markForCheck();
+        this.changeDetector.detectChanges();
       },
     });
   }
@@ -225,6 +244,7 @@ export class UsuariosComponent implements OnInit {
     this.riscosEmEdicao = [];
     this.riscosOriginais = [];
     this.riscosMensagem = '';
+    this.riscosSalvosComSucesso = false;
     this.riscosApi.listar({ situacao: 'ATIVO' }).subscribe({
       next: (riscos) => {
         this.riscosDisponiveis = riscos.filter((risco) => risco.situacao === 'ATIVO');
@@ -255,6 +275,7 @@ export class UsuariosComponent implements OnInit {
     this.riscoSelecionadoId = null;
     this.novaValidade = '';
     this.riscosMensagem = '';
+    this.riscosSalvosComSucesso = false;
     if (!usuario) return;
     this.riscosCarregando = true;
     this.riscosApi.listarAssociacoes(usuario.id).subscribe({
@@ -277,6 +298,7 @@ export class UsuariosComponent implements OnInit {
   }
 
   adicionarRiscoAoUsuario(): void {
+    this.riscosSalvosComSucesso = false;
     if (!this.usuarioGestaoRisco || !this.authService.isAdmin()) {
       return;
     }
@@ -312,6 +334,7 @@ export class UsuariosComponent implements OnInit {
   }
 
   removerRiscoDoUsuario(riscoId: number): void {
+    this.riscosSalvosComSucesso = false;
     if (!this.usuarioGestaoRisco || !this.authService.isAdmin()) {
       return;
     }
@@ -321,6 +344,7 @@ export class UsuariosComponent implements OnInit {
   }
 
   salvarAssociacoesRisco(): void {
+    this.riscosSalvosComSucesso = false;
     if (!this.usuarioGestaoRisco || !this.authService.isAdmin() || this.salvandoRiscos) {
       return;
     }
@@ -341,6 +365,7 @@ export class UsuariosComponent implements OnInit {
         this.riscosOriginais = riscos.map((risco) => this.adaptarRiscoUsuario(risco));
         this.riscosEmEdicao = this.riscosOriginais.map((risco) => ({ ...risco }));
         this.riscosMensagem = 'Associações de riscos salvas com sucesso.';
+        this.riscosSalvosComSucesso = true;
         this.salvandoRiscos = false;
         this.changeDetector.markForCheck();
       },
@@ -360,6 +385,7 @@ export class UsuariosComponent implements OnInit {
     this.riscoSelecionadoId = null;
     this.novaValidade = '';
     this.riscosMensagem = '';
+    this.riscosSalvosComSucesso = false;
   }
 
   editarUsuario(usuario: Usuario): void {
@@ -384,20 +410,28 @@ export class UsuariosComponent implements OnInit {
   }
 
   salvarEdicao(): void {
-    if (!this.usuarioSelecionado) {
+    if (!this.usuarioSelecionado || !this.authService.isAdmin()) {
       return;
     }
-
-    const index = this.usuarios.findIndex((usuario) => usuario.id === this.usuarioSelecionado!.id);
-
-    if (index !== -1) {
-      this.usuarios[index] = { ...this.usuarioSelecionado };
-    }
-
-    this.buscarUsuario();
-
-    this.mensagem = 'Usuário atualizado com sucesso!';
-    this.usuarioSelecionado = null;
+    const usuarioEditado = this.usuarioSelecionado;
+    this.usuarioApiService
+      .atualizarStatus(usuarioEditado.id, usuarioEditado.ativo ? 'ATIVO' : 'INATIVO')
+      .subscribe({
+        next: (resposta) => {
+          const index = this.usuarios.findIndex((usuario) => usuario.id === resposta.id);
+          if (index !== -1) {
+            this.usuarios[index] = { ...this.usuarios[index], ativo: resposta.status === 'ATIVO' };
+          }
+          this.buscarUsuario();
+          this.mensagem = 'Status do usuário atualizado com sucesso.';
+          this.usuarioSelecionado = null;
+          this.changeDetector.markForCheck();
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.mensagem = `Não foi possível atualizar o status do usuário (HTTP ${erro.status}).`;
+          this.changeDetector.markForCheck();
+        },
+      });
   }
 
   cancelarEdicao(): void {
@@ -422,6 +456,7 @@ export class UsuariosComponent implements OnInit {
     this.usuarioSelecionado = null;
     this.usuarioGestaoRisco = null;
     this.subNavAtiva = 'lista';
+    this.carregarUsuarios();
   }
 
   cadastrarUsuario(formulario: NgForm): void {
@@ -543,5 +578,13 @@ export class UsuariosComponent implements OnInit {
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     const dia = String(hoje.getDate()).padStart(2, '0');
     return `${ano}-${mes}-${dia}`;
+  }
+
+  private abrirUsuarioNotificado(): void {
+    if (!this.usuarioIdNotificado || !this.usuarios.length) return;
+    const usuario = this.usuarios.find((item) => item.id === this.usuarioIdNotificado);
+    if (!usuario) return;
+    this.usuarioIdNotificado = null;
+    this.editarUsuario(usuario);
   }
 }

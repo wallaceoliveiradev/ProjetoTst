@@ -461,6 +461,17 @@ export class Epis implements OnInit {
 
   salvarEpiCadastro() {
     this.feedbackCadastro = '';
+    if (!this.cadastroForm.ca.trim()) {
+      this.definirFeedbackCadastro(
+        'Informe o CA / Certificado de Aprovação indicado pelo fabricante.',
+        'error',
+      );
+      return;
+    }
+    if (this.cadastroForm.ca.trim().length > 80) {
+      this.definirFeedbackCadastro('O CA deve possuir no máximo 80 caracteres.', 'error');
+      return;
+    }
     if (
       !this.cadastroForm.nome.trim() ||
       !Number.isInteger(this.cadastroForm.quantidade) ||
@@ -511,7 +522,7 @@ export class Epis implements OnInit {
       dataEntrada: this.cadastroForm.dataEntrada,
       quantidade: Number(this.cadastroForm.quantidade),
       validade: this.cadastroForm.validade,
-      ca: definicaoCatalogo.ca,
+      ca: this.cadastroForm.ca.trim(),
     };
     const salvar =
       estavaEditando && this.epiEditandoId !== null
@@ -561,6 +572,9 @@ export class Epis implements OnInit {
   editarEpiCadastro(epi: CadastroEpi) {
     this.cadastroForm = { ...epi };
     this.selecionarTipoEpi(epi.nome);
+    // A edição deve preservar o CA gravado para esta remessa, mesmo quando
+    // o catálogo não possui um valor padrão para o equipamento.
+    this.cadastroForm.ca = epi.ca;
     this.epiEditandoId = epi.id;
     this.feedbackCadastro = '';
   }
@@ -570,7 +584,8 @@ export class Epis implements OnInit {
     const opcao = this.catalogoEpis.find((epi) => epi.nome === nome);
     if (opcao) {
       this.cadastroForm.categoria = opcao.categoria;
-      this.cadastroForm.ca = opcao.ca;
+      const caExistente = this.episCadastrados.find((epi) => epi.nome === nome)?.ca;
+      this.cadastroForm.ca = caExistente || opcao.ca;
     } else if (!nome) {
       this.cadastroForm.categoria = '';
       this.cadastroForm.ca = '';

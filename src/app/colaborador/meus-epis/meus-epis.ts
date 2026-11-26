@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -14,6 +14,7 @@ import { EpisApiService, EntregaEpiApi, EpiCatalogoApi } from '../../services/ep
 export class MeusEpis implements OnInit {
   private readonly api = inject(EpisApiService);
   private readonly auth = inject(AuthService);
+  private readonly changeDetector = inject(ChangeDetectorRef);
 
   aba = 'meus';
   catalogo: EpiCatalogoApi[] = [];
@@ -35,11 +36,13 @@ export class MeusEpis implements OnInit {
       next: (epis) => {
         this.catalogo = epis;
         this.carregandoCatalogo = false;
+        this.changeDetector.markForCheck();
       },
       error: (erro: unknown) => {
         console.error('Não foi possível carregar o catálogo de EPIs.', erro);
         this.erro = 'Não foi possível carregar os EPIs cadastrados no sistema.';
         this.carregandoCatalogo = false;
+        this.changeDetector.markForCheck();
       },
     });
   }
@@ -50,11 +53,13 @@ export class MeusEpis implements OnInit {
       next: (entregas) => {
         this.historico = entregas;
         this.carregandoEntregas = false;
+        this.changeDetector.markForCheck();
       },
       error: (erro: unknown) => {
         console.error('Não foi possível carregar as entregas do colaborador.', erro);
         this.erro = 'Não foi possível carregar seus EPIs recebidos.';
         this.carregandoEntregas = false;
+        this.changeDetector.markForCheck();
       },
     });
   }

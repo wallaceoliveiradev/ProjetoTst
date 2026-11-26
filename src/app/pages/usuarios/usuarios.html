@@ -159,7 +159,17 @@
 
     <ng-container *ngIf="usuarioGestaoRisco">
       <h4>Associar risco</h4>
-      <p *ngIf="riscosMensagem" class="mensagem-alerta" role="status">{{ riscosMensagem }}</p>
+      <p
+        *ngIf="riscosMensagem"
+        class="mensagem-alerta"
+        [class.mensagem-sucesso]="riscosSalvosComSucesso"
+        [style.color]="riscosSalvosComSucesso ? '#166534' : null"
+        [style.background-color]="riscosSalvosComSucesso ? '#ecfdf3' : null"
+        [style.border-color]="riscosSalvosComSucesso ? '#86efac' : null"
+        role="status"
+      >
+        {{ riscosMensagem }}
+      </p>
       <div class="associar-risco">
         <div class="form-group">
           <label for="risco-usuario">Risco ativo</label>
@@ -376,6 +386,7 @@
         (click)="$event.stopPropagation()"
       >
         <h3>Editar usuário</h3>
+        <p class="status-atual">Status atual: <strong>{{ usuarioSelecionado.ativo ? 'Ativo' : 'Inativo' }}</strong></p>
         <div class="form-group">
           <label for="usuario-editar-nome">Nome</label>
           <input type="text" id="usuario-editar-nome" [(ngModel)]="usuarioSelecionado.nome" />

@@ -1,6 +1,23 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { Subscription, timer } from 'rxjs';
 import { AuthService } from '../../services/auth.service'; // 👈 importe o serviço
+import { NotificacaoAdminApiService, NotificacaoBloqueio } from '../../services/notificacao-admin-api.service';
+
+interface SolicitacaoEpi {
+  id: number;
+  funcionarioId: number | null;
+  nomeColaborador: string;
+  epi: string;
+  quantidade: number;
+  motivo: string;
+  data?: string;
+  lida?: boolean;
+}
+
+type NotificacaoItem =
+  | { tipo: 'epi'; data: SolicitacaoEpi }
+  | { tipo: 'bloqueio'; data: NotificacaoBloqueio };
 
 @Component({
   selector: 'app-topbar',
@@ -8,54 +25,121 @@ import { AuthService } from '../../services/auth.service'; // 👈 importe o ser
   templateUrl: './topbar.html',
   styleUrl: './topbar.scss',
 })
-export class Topbar implements OnInit {
+export class Topbar implements OnInit, OnDestroy {
   searchTerm = '';
-  solicitacoesPendentes = 0;
+  bloqueiosPendentes: NotificacaoBloqueio[] = [];
+  solicitacoesEpiPendentes: SolicitacaoEpi[] = [];
+  notificacoesAbertas = false;
+  private notificacoesSubscription?: Subscription;
+
+  get notificacoes(): NotificacaoItem[] {
+    return [
+      ...this.solicitacoesEpiPendentes.map((data) => ({ tipo: 'epi' as const, data })),
+      ...this.bloqueiosPendentes.map((data) => ({ tipo: 'bloqueio' as const, data })),
+    ].sort((a, b) => this.dataNotificacao(b) - this.dataNotificacao(a));
+  }
 
   // 👇 aqui você injeta o AuthService junto com o Router
   constructor(
     public authService: AuthService,
     private router: Router,
+    private notificacaoApi: NotificacaoAdminApiService,
   ) {}
 
   ngOnInit(): void {
     if (typeof localStorage === 'undefined' || !this.authService.isAdmin()) return;
+    this.notificacoesSubscription = timer(0, 30_000).subscribe(() => this.carregarNotificacoes());
+  }
+
+  ngOnDestroy(): void {
+    this.notificacoesSubscription?.unsubscribe();
+  }
+
+  private carregarNotificacoes(): void {
+    this.carregarSolicitacoesEpi();
+    this.notificacaoApi.listarBloqueios().subscribe({
+      next: (notificacoes) => (this.bloqueiosPendentes = notificacoes.filter((item) => !item.lida)),
+      error: () => (this.bloqueiosPendentes = []),
+    });
+  }
+
+  private carregarSolicitacoesEpi(): void {
     try {
-      this.solicitacoesPendentes = (
-        JSON.parse(localStorage.getItem('solicitacoes-epis') || '[]') as Array<{ lida?: boolean }>
-      ).filter((item) => !item.lida).length;
+      this.solicitacoesEpiPendentes = (
+        JSON.parse(localStorage.getItem('solicitacoes-epis') || '[]') as SolicitacaoEpi[]
+      ).filter((item) => !item.lida);
     } catch {
-      this.solicitacoesPendentes = 0;
+      this.solicitacoesEpiPendentes = [];
     }
   }
 
-  abrirSolicitacoes(): void {
+  alternarNotificacoes(): void {
     if (!this.authService.isAdmin()) return;
-    try {
-      const requests = JSON.parse(localStorage.getItem('solicitacoes-epis') || '[]') as Array<{
-        id: number;
-        funcionarioId: number;
-        epi: string;
-        quantidade: number;
-        motivo: string;
-        lida?: boolean;
-      }>;
-      const request = requests.find((item) => !item.lida);
-      if (request) {
-        this.router.navigate(['/sistema/epis-admin'], {
-          queryParams: {
-            aba: 'entrega',
-            funcionarioId: request.funcionarioId,
-            epi: request.epi,
-            quantidade: request.quantidade,
-            motivo: request.motivo,
-            solicitacao: request.id,
-          },
-        });
-      } else this.router.navigate(['/sistema/epis-admin'], { queryParams: { aba: 'entrega' } });
-    } catch {
-      this.router.navigate(['/sistema/epis-admin'], { queryParams: { aba: 'entrega' } });
+    this.notificacoesAbertas = !this.notificacoesAbertas;
+    if (this.notificacoesAbertas) this.carregarNotificacoes();
+  }
+
+  fecharNotificacoes(): void {
+    this.notificacoesAbertas = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  fecharNotificacoesAoClicarFora(event: MouseEvent): void {
+    const alvo = event.target;
+    if (typeof Element !== 'undefined' && alvo instanceof Element && !alvo.closest('.notification-center')) {
+      this.fecharNotificacoes();
     }
+  }
+
+  abrirNotificacao(notificacao: NotificacaoItem): void {
+    if (!this.authService.isAdmin()) return;
+    this.notificacoesAbertas = false;
+
+    if (notificacao.tipo === 'epi') {
+      const solicitacao = notificacao.data;
+      try {
+        const todas = JSON.parse(localStorage.getItem('solicitacoes-epis') || '[]') as SolicitacaoEpi[];
+        localStorage.setItem(
+          'solicitacoes-epis',
+          JSON.stringify(todas.map((item) => item.id === solicitacao.id ? { ...item, lida: true } : item)),
+        );
+      } catch {
+        // Continua para a tela mesmo se o navegador não conseguir atualizar o estado local.
+      }
+      this.carregarSolicitacoesEpi();
+      this.router.navigate(['/sistema/epis-admin'], {
+        queryParams: {
+          aba: 'entrega',
+          funcionarioId: solicitacao.funcionarioId,
+          epi: solicitacao.epi,
+          quantidade: solicitacao.quantidade,
+          motivo: solicitacao.motivo,
+          solicitacao: solicitacao.id,
+        },
+      });
+      return;
+    }
+
+    const bloqueio = notificacao.data;
+    this.notificacaoApi.marcarComoLida(bloqueio.id).subscribe({
+      next: () => {
+        this.bloqueiosPendentes = this.bloqueiosPendentes.filter((item) => item.id !== bloqueio.id);
+        this.router.navigate(['/sistema/usuarios'], { queryParams: { usuarioId: bloqueio.usuarioId } });
+      },
+      error: () => this.router.navigate(['/sistema/usuarios'], { queryParams: { usuarioId: bloqueio.usuarioId } }),
+    });
+  }
+
+  formatarDataNotificacao(data: string | undefined): string {
+    if (!data) return '';
+    const dataValida = new Date(data);
+    return Number.isNaN(dataValida.getTime()) ? '' : dataValida.toLocaleString('pt-BR');
+  }
+
+  private dataNotificacao(item: NotificacaoItem): number {
+    const data = item.tipo === 'epi' ? item.data.data : item.data.criadaEm;
+    const timestamp = data ? new Date(data).getTime() : 0;
+    return Number.isNaN(timestamp) ? 0 : timestamp;
   }
 
   resolveRoute(term: string): { path: string; queryParams?: Record<string, string> } {

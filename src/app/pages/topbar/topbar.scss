@@ -69,6 +69,60 @@
   color: white;
   font-size: 12px;
 }
+.notification-center {
+  position: relative;
+}
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(440px, calc(100dvh - 100px));
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--sst-border);
+  border-radius: var(--sst-radius);
+  background: var(--sst-surface);
+  box-shadow: 0 12px 32px #15211c1a;
+}
+.notification-dropdown h2 {
+  margin: 8px 10px 10px;
+  font-size: 16px;
+}
+.notification-empty {
+  margin: 10px;
+  color: var(--sst-muted);
+  font-size: 14px;
+}
+.notification-item {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sst-text);
+  text-align: left;
+  cursor: pointer;
+}
+.notification-item:hover,
+.notification-item:focus-visible {
+  background: var(--sst-yellow-soft);
+}
+.notification-item strong {
+  font-size: 14px;
+}
+.notification-item span,
+.notification-item small {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.notification-item small {
+  color: var(--sst-muted);
+}
 .account {
   position: relative;
   min-width: 0;

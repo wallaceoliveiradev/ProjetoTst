@@ -190,7 +190,15 @@
             @if (cadastroForm.nome) {
               <div class="form-group">
                 <label for="caEpi">CA / Certificado de Aprovação</label>
-                <input id="caEpi" type="text" [ngModel]="cadastroForm.ca" name="caEpi" readonly />
+                <input
+                  id="caEpi"
+                  type="text"
+                  [(ngModel)]="cadastroForm.ca"
+                  name="caEpi"
+                  maxlength="80"
+                  placeholder="Informe o CA indicado pelo fabricante"
+                  required
+                />
               </div>
             }
           </div>

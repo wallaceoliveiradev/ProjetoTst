@@ -5,6 +5,38 @@
     Consulte as orientações de segurança da sua atividade e comunique condições de risco ao
     responsável pela Segurança do Trabalho.
   </p>
+
+  <section class="associated-risks" aria-labelledby="associated-risks-title">
+    <h2 id="associated-risks-title">Risco Associado</h2>
+    @if (riscosCarregando) {
+      <p role="status">Carregando riscos associados...</p>
+    } @else if (erroAoCarregar) {
+      <p class="risk-message risk-error" role="alert">
+        Não foi possível carregar os riscos associados. A API não respondeu em até 10 segundos ou
+        está indisponível. Atualize a página e tente novamente.
+      </p>
+      <button type="button" class="retry-button" (click)="carregarRiscos()">
+        Tentar novamente
+      </button>
+    } @else if (riscosAssociados.length === 0) {
+      <p class="risk-message">Nenhum risco foi associado ao seu perfil.</p>
+    } @else {
+      <div class="risk-list">
+        @for (risco of riscosAssociados; track risco.riscoId) {
+          <article class="risk-card">
+            <h3>{{ risco.risco }}</h3>
+            <dl>
+              <div><dt>Setor</dt><dd>{{ risco.setor }}</dd></div>
+              <div><dt>Nível</dt><dd>{{ risco.nivel }}</dd></div>
+              <div><dt>Situação</dt><dd>{{ risco.situacao }}</dd></div>
+              <div><dt>Validade</dt><dd>{{ risco.validade | date: 'dd/MM/yyyy' }}</dd></div>
+            </dl>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
   <article>
     <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
     <h2>Identificou uma situação de risco?</h2>

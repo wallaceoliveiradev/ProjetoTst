@@ -20,6 +20,47 @@ h2 {
 p {
   color: var(--sst-muted);
 }
+.associated-risks {
+  margin: 24px 0;
+}
+.associated-risks > h2 {
+  margin-bottom: 12px;
+}
+.risk-list {
+  display: grid;
+  gap: 12px;
+}
+.risk-card {
+  margin: 0;
+  padding: 18px 20px;
+}
+.risk-card h3 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+.risk-card dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+.risk-card dt {
+  color: var(--sst-muted);
+  font-size: 13px;
+}
+.risk-card dd {
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+.risk-message {
+  padding: 14px 16px;
+  background: var(--sst-surface);
+  border: 1px solid var(--sst-border);
+  border-radius: var(--sst-radius);
+}
+.risk-error {
+  color: #a32020;
+}
 article {
   padding: 24px;
   margin: 24px 0;
@@ -41,4 +82,16 @@ a {
   color: var(--sst-text);
   font-weight: 600;
   text-decoration: none;
+}
+.retry-button {
+  min-height: 40px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: 1px solid var(--sst-border);
+  border-radius: 8px;
+  background: var(--sst-surface);
+  color: var(--sst-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }

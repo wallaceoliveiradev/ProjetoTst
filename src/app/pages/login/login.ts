@@ -16,6 +16,7 @@ export class Login {
   usuario = '';
   senha = '';
   autenticando = false;
+  erroLogin = '';
 
   // Controle da mensagem flutuante
   mensagemFlutuante = '';
@@ -31,6 +32,7 @@ export class Login {
       return;
     }
 
+    this.erroLogin = '';
     this.autenticando = true;
     this.authService.loginApi(this.usuario.trim(), this.senha).subscribe({
       next: () => {
@@ -39,8 +41,16 @@ export class Login {
       },
       error: (erro: HttpErrorResponse) => {
         this.autenticando = false;
-        const mensagem = this.obterMensagemErro(erro);
-        this.mostrarMensagemFlutuante(mensagem.titulo, mensagem.texto);
+        if (erro.status === 423) {
+          this.erroLogin = 'Conta Inativa ,por bloqueio';
+        } else if (erro.status === 403) {
+          this.erroLogin = 'Conta Inativa';
+        } else if (erro.status === 401 || erro.status === 400) {
+          this.erroLogin = 'loguin ou senha errados , Tente novamente ';
+        } else {
+          const mensagem = this.obterMensagemErro(erro);
+          this.mostrarMensagemFlutuante(mensagem.titulo, mensagem.texto);
+        }
       },
     });
   }
