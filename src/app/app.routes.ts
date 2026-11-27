@@ -22,9 +22,8 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () => inject(AuthService).isColaborador()
-          ? import('./colaborador/dashboard-colaborador/dashboard-colaborador').then((module) => module.DashboardColaborador)
-          : import('./pages/dashboard/dashboard').then((module) => module.Dashboard),
+        loadComponent: () =>
+          import('./pages/role-views/dashboard-inicio').then((module) => module.DashboardInicio),
       },
       {
         path: 'usuarios',
@@ -45,9 +44,8 @@ export const routes: Routes = [
       },
       {
         path: 'epis',
-        loadComponent: () => inject(AuthService).isColaborador()
-          ? import('./colaborador/meus-epis/meus-epis').then((module) => module.MeusEpis)
-          : import('./pages/epis/epis').then((module) => module.Epis),
+        loadComponent: () =>
+          import('./pages/role-views/epis-por-perfil').then((module) => module.EpisPorPerfil),
       },
       {
         path: 'meus-epis',
@@ -67,9 +65,8 @@ export const routes: Routes = [
       },
       {
         path: 'riscos',
-        loadComponent: () => inject(AuthService).isColaborador()
-          ? import('./colaborador/riscos/riscos-colaborador').then((module) => module.RiscosColaborador)
-          : import('./pages/riscos/riscos').then((module) => module.Riscos),
+        loadComponent: () =>
+          import('./pages/role-views/riscos-por-perfil').then((module) => module.RiscosPorPerfil),
       },
       {
         path: 'relatorios',

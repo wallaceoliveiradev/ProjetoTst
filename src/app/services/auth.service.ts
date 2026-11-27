@@ -20,6 +20,7 @@ export interface LoginApiResponse {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly nomeAtualizado = signal<string | null>(null);
+  private readonly perfilAtual = signal<Perfil | null>(this.lerPerfilSalvo());
   private readonly apiUrl = 'http://localhost:8080/api/auth/login';
 
   constructor(private http: HttpClient) {}
@@ -41,6 +42,7 @@ export class AuthService {
     localStorage.setItem('nomeUsuario', resposta.usuario.nome);
     localStorage.setItem('usuarioLogado', JSON.stringify(resposta.usuario));
     localStorage.removeItem('isLoggedIn');
+    this.perfilAtual.set(this.normalizarPerfil(resposta.usuario.perfil));
     this.nomeAtualizado.set(resposta.usuario.nome);
   }
 
@@ -55,6 +57,7 @@ export class AuthService {
     localStorage.removeItem('nomeUsuario');
     localStorage.removeItem('usuarioLogado');
     localStorage.removeItem('isLoggedIn');
+    this.perfilAtual.set(null);
     this.nomeAtualizado.set(null);
   }
 
@@ -69,12 +72,7 @@ export class AuthService {
   }
 
   getPerfil(): Perfil | null {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    const perfil = localStorage.getItem('perfil');
-    return perfil === 'admin' || perfil === 'colaborador' ? perfil : null;
+    return this.perfilAtual();
   }
 
   isAdmin(): boolean {
@@ -131,5 +129,20 @@ export class AuthService {
       this.logout();
       return null;
     }
+  }
+
+  private lerPerfilSalvo(): Perfil | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    return this.normalizarPerfil(localStorage.getItem('perfil'));
+  }
+
+  private normalizarPerfil(perfil: string | null): Perfil | null {
+    const perfilNormalizado = perfil?.toLowerCase();
+    return perfilNormalizado === 'admin' || perfilNormalizado === 'colaborador'
+      ? perfilNormalizado
+      : null;
   }
 }
